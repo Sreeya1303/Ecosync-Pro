@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic[email]
+python-multipart
+scikit-learn
+numpy
+filterpy
+httpx
+requests
+openai
+pyserial
+google-auth
+python-dotenv
+email-validator

@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@theme {
+  --color-term-bg: #030712; /* Darker Space Black */
+  --color-term-panel: rgba(10, 10, 20, 0.7);
+  --color-term-accent: #00f3ff; /* Neon Cyan */
+  --color-term-critical: #ff0055; /* Neon Red */
+  --color-term-success: #00ff9d; /* Neon Green */
+  --color-term-border: rgba(0, 243, 255, 0.2);
+  --color-term-grid: rgba(0, 243, 255, 0.04);
+
+  --shadow-premium: 0 4px 60px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.15);
+  --shadow-glow: 0 0 25px rgba(0, 243, 255, 0.3);
+  
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-flicker: flicker 0.15s infinite;
+}
+
+/* Base Reset */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-term-bg);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.1), transparent 25%), 
+    radial-gradient(circle at 85% 30%, rgba(255, 0, 85, 0.08), transparent 25%);
+  color: #e2e8f0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Global Grid Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--color-term-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-term-grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* CRT Scanline Effect */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  z-index: 9999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-term-accent);
+}
+
+/* Glass Utilities */
+.glass-depth {
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+}
+
+.glass-panel {
+  background: var(--color-term-panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-term-border);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+/* Corner Accents for Panels */
+.glass-panel::before, .glass-panel::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border: 1px solid var(--color-term-accent);
+    transition: all 0.3s ease;
+}
+.glass-panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.glass-panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.glass-panel:hover {
+  border-color: var(--color-term-accent);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+/* Text Glow */
+.text-glow {
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.7; filter: brightness(1.2); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Leaflet Dark Mode Override */
+.leaflet-container {
+  background: #020617 !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+.leaflet-bar a {
+  background-color: #1e293b !important;
+  color: #00f3ff !important;
+  border-bottom: 1px solid #334155 !important;
+}
+.leaflet-control-layers {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+    color: white !important;
+}
