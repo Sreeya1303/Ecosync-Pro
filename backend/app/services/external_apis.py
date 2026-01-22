@@ -7,21 +7,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Configuration ---
-# --- Configuration ---
-OWM_API_KEY = os.getenv("OWM_API_KEY") 
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY") 
 OPENAQ_API_KEY = os.getenv("OPENAQ_API_KEY")
-NASA_API_KEY = os.getenv("NASA_API_KEY")
+NASA_API_KEY = os.getenv("NASA_API_KEY", "DEMO_KEY")
 
 async def fetch_open_weather(lat: float, lon: float):
     """
     Fetches weather data from OpenWeatherMap.
     Falls back to mock data if no key is provided or request fails.
     """
-    if not OWM_API_KEY:
-        print("Warning: No OWM_API_KEY found. using Mock Data.")
+    if not OPENWEATHER_API_KEY:
+        print("Warning: No OPENWEATHER_API_KEY found. using Mock Data.")
         return get_mock_weather(lat, lon)
 
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OWM_API_KEY}&units=metric"
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric"
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(url, timeout=5.0)
