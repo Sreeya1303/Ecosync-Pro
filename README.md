@@ -4,7 +4,10 @@
 
 > **Production-Ready IoT Monitoring System with Predictive AI & Voice Control**
 
-![Status](https://img.shields.io/badge/Status-Operational-emerald) ![AI](https://img.shields.io/badge/AI_Engine-Active-purple) ![Security](https://img.shields.io/badge/Security-Level_5-blue)
+![Status](https://img.shields.io/badge/Status-Operational-emerald) ![Frontend](https://img.shields.io/badge/Frontend-Firebase-orange) ![Backend](https://img.shields.io/badge/Backend-Render-blue)
+
+**Live Demo**: [https://environmental-8b801.web.app](https://environmental-8b801.web.app)
+**Backend API**: [https://capstone-backend-djdd.onrender.com](https://capstone-backend-djdd.onrender.com)
 
 ## 🌟 Overview
 This project is a state-of-the-art **Environmental Monitoring System** designed to track, analyze, and predict critical atmospheric conditions in real-time. It features a **Premium UI** (React + Glassmorphism) with a robust **AI Backend** (Python + FastAPI) to provide actionable insights.
