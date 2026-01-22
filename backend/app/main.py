@@ -24,9 +24,29 @@ except Exception as e:
 
 app = FastAPI(title="IoT Device Dashboard Backend")
 
+# CORS Configuration for Development and Production
+import os
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+# Define allowed origins based on environment
+if ENVIRONMENT == "production":
+    allowed_origins = [
+        "https://your-project-id.web.app",           # Firebase Hosting
+        "https://your-project-id.firebaseapp.com",   # Firebase Hosting alternate
+        # Add your custom domain here if you have one
+        # "https://yourdomain.com",
+    ]
+else:
+    # Development - allow localhost
+    allowed_origins = [
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative port
+        "http://127.0.0.1:5173",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
