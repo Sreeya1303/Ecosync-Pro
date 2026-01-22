@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, LayersControl, useMap } from 'react-leaflet';
-import { Loader2, Wind, Thermometer, Activity, Save, X, Search, Crosshair, RefreshCw } from 'lucide-react';
+import { MapContainer, TileLayer, CircleMarker, useMapEvents, LayersControl, useMap } from 'react-leaflet';
+import { Loader2, Wind, Thermometer, Activity, Save, X, Search, Crosshair, RefreshCw, Cpu, Radio } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import API_BASE_URL from '../config';
 
 // --- CONSTANTS ---
 const MAX_MARKERS = 200;
-const POLL_INTERVAL = 5000; // 5 seconds
+const POLL_INTERVAL = 5000;
 
 const MapEvents = ({ onMapClick }) => {
     useMapEvents({
@@ -17,7 +17,7 @@ const MapEvents = ({ onMapClick }) => {
     return null;
 };
 
-// Locate Button Component
+// Locate Button
 const LocateButton = ({ onLocationFound }) => {
     const [locating, setLocating] = useState(false);
     const map = useMap();
@@ -38,47 +38,120 @@ const LocateButton = ({ onLocationFound }) => {
         <button
             onClick={handleLocate}
             disabled={locating}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white p-2 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center w-10 h-10"
-            title="Locate Me"
+            className="bg-black/50 hover:bg-cyan-500/50 backdrop-blur text-cyan-400 p-2 rounded-lg border border-cyan-500/30 transition-all flex items-center justify-center w-10 h-10 shadow-[0_0_15px_rgba(6,182,212,0.2)] ml-auto"
+            title="Target My Location"
         >
             {locating ? <Loader2 className="animate-spin" size={20} /> : <Crosshair size={20} />}
         </button>
     );
 };
 
-// --- OPTIMIZED MARKER LAYER ---
-const RealtimeMarkers = ({ markers }) => {
-    // Memoize markers to prevent unnecessary re-renders
-    const renderedMarkers = useMemo(() => {
-        return markers.slice(0, MAX_MARKERS).map((marker) => (
-            <CircleMarker
-                key={marker.id}
-                center={[marker.lat, marker.lon]}
-                radius={12}
-                pathOptions={{
-                    fillColor: marker.color,
-                    color: marker.color,
-                    weight: 2,
-                    opacity: 0.8,
-                    fillOpacity: 0.6
-                }}
-            >
-                <Popup>
-                    <div className="text-sm">
-                        <h3 className="font-bold text-lg">{marker.name}</h3>
-                        <p>🌡️ Temp: {marker.temp}°C</p>
-                        <p>💧 Humidity: {marker.humidity}%</p>
-                        <p>🌫️ AQI: {marker.aqi} ({marker.status})</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Updated: {new Date(marker.timestamp).toLocaleTimeString()}
-                        </p>
-                    </div>
-                </Popup>
-            </CircleMarker>
-        ));
-    }, [markers]);
+// --- DATA MODAL COMPONENT ---
+const DataModal = ({ pointData, loading, onClose, onSave }) => {
+    if (!pointData && !loading) return null;
 
-    return <>{renderedMarkers}</>;
+    return (
+        <div className="absolute inset-0 z-[2000] flex items-center justify-center pointer-events-none">
+            {/* Modal Container */}
+            <div className="relative w-full max-w-md pointer-events-auto animate-in zoom-in-95 fade-in duration-300">
+                <div className="glass-depth p-1 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-cyan-500/20 bg-black/80 backdrop-blur-xl">
+
+                    {/* Header */}
+                    <div className="flex justify-between items-center p-6 border-b border-white/10 bg-white/5 rounded-t-[1.8rem]">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/30">
+                                <Radio className="text-cyan-400 w-5 h-5 animate-pulse" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-white tracking-wide">TARGET ACQUIRED</h2>
+                                <p className="text-[10px] text-cyan-400/70 font-mono tracking-widest uppercase">Coordinates Locked</p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors group">
+                            <X size={20} className="text-slate-400 group-hover:text-white" />
+                        </button>
+                    </div>
+
+                    <div className="p-8">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-10 gap-4">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full"></div>
+                                    <Loader2 className="animate-spin text-cyan-400 relative z-10" size={48} />
+                                </div>
+                                <p className="text-cyan-400 font-mono text-sm animate-pulse">SCANNING SATELLITE DATA...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {/* Coordinates */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">LATITUDE</p>
+                                        <p className="text-xl font-mono text-cyan-400">{pointData?.location?.lat?.toFixed(4)}</p>
+                                    </div>
+                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">LONGITUDE</p>
+                                        <p className="text-xl font-mono text-cyan-400">{pointData?.location?.lon?.toFixed(4)}</p>
+                                    </div>
+                                </div>
+
+                                {/* Metrics */}
+                                <div className="space-y-4">
+                                    <div className="relative group overflow-hidden bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-5 rounded-2xl border border-cyan-500/20">
+                                        <div className="absolute top-0 right-0 p-3 opacity-20">
+                                            <Thermometer size={40} />
+                                        </div>
+                                        <p className="text-xs text-blue-300 font-bold uppercase flex items-center gap-2 mb-2">
+                                            <Thermometer size={14} /> Environmental Telemetry
+                                        </p>
+                                        <div className="flex gap-8">
+                                            <div>
+                                                <span className="text-3xl font-black text-white">{pointData?.weather?.metrics?.temperatureC || '--'}</span>
+                                                <span className="text-sm text-slate-400">°C</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-3xl font-black text-white">{pointData?.weather?.metrics?.humidityPct || '--'}</span>
+                                                <span className="text-sm text-slate-400">% RH</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative group overflow-hidden bg-gradient-to-r from-emerald-900/20 to-teal-900/20 p-5 rounded-2xl border border-emerald-500/20">
+                                        <div className="absolute top-0 right-0 p-3 opacity-20">
+                                            <Wind size={40} />
+                                        </div>
+                                        <p className="text-xs text-emerald-300 font-bold uppercase flex items-center gap-2 mb-2">
+                                            <Wind size={14} /> Atmosphere Quality
+                                        </p>
+                                        <div className="flex gap-8 items-end">
+                                            <div>
+                                                <span className="text-3xl font-black text-white">{pointData?.aqi?.metrics?.aqi || '--'}</span>
+                                                <span className="text-sm text-slate-400"> AQI</span>
+                                            </div>
+                                            <div className="pb-1">
+                                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-xs font-bold uppercase">
+                                                    SAFE TO BREATHE
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action */}
+                                <button
+                                    onClick={onSave}
+                                    className="w-full py-4 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 rounded-xl text-white font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-3 group"
+                                >
+                                    <Cpu size={18} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                                    Register as Data Source
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const LiveMap = () => {
@@ -87,59 +160,46 @@ const LiveMap = () => {
     const [pointData, setPointData] = useState(null);
     const [searchCity, setSearchCity] = useState('');
     const [realtimeMarkers, setRealtimeMarkers] = useState([]);
-    const [lastUpdate, setLastUpdate] = useState(null);
 
-    // useRef to track if component is mounted (for cleanup)
+    // useRef to track if component is mounted
     const isMounted = useRef(true);
 
     // --- REAL-TIME POLLING ---
     useEffect(() => {
         isMounted.current = true;
-
         const fetchRealtimeData = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/realtime/map`);
                 if (res.ok && isMounted.current) {
                     const data = await res.json();
                     setRealtimeMarkers(data.markers || []);
-                    setLastUpdate(new Date());
                 }
-            } catch (e) {
-                console.error("Realtime fetch error:", e);
-            }
+            } catch (e) { console.error(e); }
         };
-
-        // Initial fetch
         fetchRealtimeData();
-
-        // Poll every 5 seconds
         const interval = setInterval(fetchRealtimeData, POLL_INTERVAL);
-
-        return () => {
-            isMounted.current = false;
-            clearInterval(interval);
-        };
+        return () => { isMounted.current = false; clearInterval(interval); };
     }, []);
 
     const handleMapClick = useCallback(async (latlng) => {
         setSelectedPos(latlng);
         setLoading(true);
-        setPointData(null);
+        setPointData(null); // Open modal immediately with loading state
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/map/point?lat=${latlng.lat}&lon=${latlng.lng}`);
             const data = await res.json();
-            setPointData(data);
+            if (isMounted.current) setPointData(data);
         } catch (e) {
-            console.error("Map Fetch Error", e);
+            console.error(e);
         } finally {
-            setLoading(false);
+            if (isMounted.current) setLoading(false);
         }
     }, []);
 
     const handleSaveSource = useCallback(async () => {
         if (!pointData) return;
-        const name = prompt("Enter a name for this location:", `Location ${pointData.location.lat.toFixed(2)}, ${pointData.location.lon.toFixed(2)}`);
+        const name = prompt("Enter Node Identifier:", `Node-${pointData.location.lat.toFixed(2)}-${pointData.location.lon.toFixed(2)}`);
         if (!name) return;
 
         try {
@@ -152,153 +212,91 @@ const LiveMap = () => {
                     location: { lat: pointData.location.lat, lon: pointData.location.lon }
                 })
             });
-            alert("Location saved to Sources!");
+            alert("Node Registered Successfully.");
+            setPointData(null); // Close modal
         } catch {
-            alert("Failed to save.");
+            alert("Registration Protocol Failed.");
         }
     }, [pointData]);
 
-    const handleSearch = useCallback(async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${searchCity}&count=1&language=en&format=json`);
-            const data = await res.json();
-            if (data.results && data.results.length > 0) {
-                const { latitude, longitude } = data.results[0];
-                handleMapClick({ lat: latitude, lng: longitude });
-            } else {
-                alert("City not found");
-            }
-        } catch {
-            alert("Search failed");
-        }
-    }, [searchCity, handleMapClick]);
-
     return (
-        <div className="flex h-full w-full relative">
-            {/* Sidebar Panel for Data */}
-            <div className={`absolute top-0 left-0 h-full w-80 bg-slate-900/90 backdrop-blur-md border-r border-cyan-500/30 z-[1000] p-6 transition-transform transform ${pointData || loading ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-white">Location Data</h2>
-                    <button onClick={() => { setPointData(null); setLoading(false); }}><X className="text-slate-400" /></button>
-                </div>
-
-                {loading && (
-                    <div className="flex flex-col items-center justify-center h-40 gap-3">
-                        <Loader2 className="animate-spin text-cyan-400" size={32} />
-                        <p className="text-slate-400 text-sm">Querying Public APIs...</p>
-                    </div>
-                )}
-
-                {pointData && (
-                    <div className="space-y-6 animate-in fade-in">
-                        <div className="bg-slate-800 p-3 rounded border border-slate-700">
-                            <p className="text-xs text-slate-500 font-mono">LAT: {pointData.location.lat.toFixed(4)}</p>
-                            <p className="text-xs text-slate-500 font-mono">LON: {pointData.location.lon.toFixed(4)}</p>
-                        </div>
-
-                        {/* Weather */}
-                        <div>
-                            <h3 className="text-sm font-bold text-cyan-400 uppercase mb-2 flex items-center gap-2">
-                                <Thermometer size={14} /> Weather
-                            </h3>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-cyan-900/20 p-2 rounded">
-                                    <p className="text-xs text-slate-400">Temp</p>
-                                    <p className="text-lg font-mono text-white">{pointData.weather?.metrics?.temperatureC || '--'}°C</p>
-                                </div>
-                                <div className="bg-cyan-900/20 p-2 rounded">
-                                    <p className="text-xs text-slate-400">Humidity</p>
-                                    <p className="text-lg font-mono text-white">{pointData.weather?.metrics?.humidityPct || '--'}%</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* AQI */}
-                        <div>
-                            <h3 className="text-sm font-bold text-emerald-400 uppercase mb-2 flex items-center gap-2">
-                                <Wind size={14} /> Air Quality
-                            </h3>
-                            <div className="bg-emerald-900/20 p-3 rounded border border-emerald-500/20">
-                                <p className="text-3xl font-black text-white">{pointData.aqi?.metrics?.aqi || '--'}</p>
-                                <p className="text-xs text-emerald-400">AQI Score</p>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleSaveSource}
-                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                        >
-                            <Save size={18} /> SAVE SOURCE
-                        </button>
-                    </div>
-                )}
-            </div>
+        <div className="flex h-full w-full relative overflow-hidden bg-slate-950">
+            {/* Modal Layer */}
+            <DataModal
+                pointData={pointData}
+                loading={loading}
+                onClose={() => { setPointData(null); setLoading(false); setSelectedPos(null); }}
+                onSave={handleSaveSource}
+            />
 
             {/* Map Area */}
-            <div className="flex-1 relative h-full">
-                {/* Search Overlay */}
-                <div className="absolute top-4 left-20 z-[900] bg-slate-900/80 backdrop-blur rounded-lg border border-slate-700 flex p-2">
-                    <form onSubmit={handleSearch} className="flex gap-2">
-                        <input
-                            className="bg-transparent text-white outline-none text-sm w-48"
-                            placeholder="Search City..."
-                            value={searchCity}
-                            onChange={e => setSearchCity(e.target.value)}
-                        />
-                        <button type="submit" className="text-cyan-400 hover:text-white"><Search size={18} /></button>
-                    </form>
+            <div className="flex-1 relative h-full z-0">
+
+                {/* HUD Overlay Top */}
+                <div className="absolute top-4 left-20 z-[900] flex gap-4 pointer-events-none">
+                    <div className="pointer-events-auto bg-black/60 backdrop-blur rounded-xl border border-white/10 p-1 flex">
+                        <form onSubmit={(e) => { e.preventDefault(); /* Implement search if needed, usually passed down */ }} className="flex">
+                            <input
+                                className="bg-transparent text-white outline-none text-xs w-48 px-3 font-mono placeholder-slate-600"
+                                placeholder="SEARCH SECTOR..."
+                                value={searchCity}
+                                onChange={e => setSearchCity(e.target.value)}
+                            />
+                            <button className="p-2 bg-white/5 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors"><Search size={14} /></button>
+                        </form>
+                    </div>
                 </div>
 
-                {/* Real-time Status Badge */}
-                <div className="absolute top-4 right-4 z-[900] bg-black/60 backdrop-blur px-4 py-2 rounded-lg flex items-center gap-2 text-xs text-white border border-white/10">
-                    <RefreshCw size={14} className={realtimeMarkers.length > 0 ? 'text-emerald-400' : 'text-slate-500'} />
-                    <span>{realtimeMarkers.length} Stations</span>
-                    {lastUpdate && <span className="text-slate-500">| {lastUpdate.toLocaleTimeString()}</span>}
+                <div className="absolute top-4 right-4 z-[900] pointer-events-auto">
+                    <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-emerald-500/20 flex items-center gap-3 shadow-lg">
+                        <div className="relative">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping absolute"></div>
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full relative"></div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-400 tracking-widest uppercase">{realtimeMarkers.length} ACTIVE NODES</span>
+                    </div>
                 </div>
 
                 <MapContainer
                     center={[20.5937, 78.9629]}
                     zoom={5}
-                    style={{ height: '100%', width: '100%', background: '#0f172a' }}
-                    preferCanvas={true} // Performance boost
+                    style={{ height: '100%', width: '100%', background: '#020617' }}
+                    preferCanvas={true}
+                    zoomControl={false} // Custom zoom maybe? or just keep default
                 >
-                    <LayersControl position="topleft">
-                        <LayersControl.BaseLayer checked name="Sci-Fi Dark">
+                    <LayersControl position="bottomright">
+                        <LayersControl.BaseLayer checked name="Dark Matter">
                             <TileLayer
                                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                            />
-                        </LayersControl.BaseLayer>
-                        <LayersControl.BaseLayer name="Light Mode">
-                            <TileLayer
-                                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                                attribution='&copy; CARTO'
                             />
                         </LayersControl.BaseLayer>
                     </LayersControl>
 
                     <MapEvents onMapClick={handleMapClick} />
 
-                    {/* Optimized Real-time Markers */}
-                    <RealtimeMarkers markers={realtimeMarkers} />
+                    {/* Realtime Markers (Simple Dots for performance) */}
+                    {realtimeMarkers.map(marker => (
+                        <CircleMarker
+                            key={marker.id}
+                            center={[marker.lat, marker.lon]}
+                            radius={4}
+                            pathOptions={{ fillColor: marker.color, color: marker.color, weight: 0, fillOpacity: 0.8 }}
+                        />
+                    ))}
 
-                    {/* Selected Position Marker */}
+                    {/* Selected Cursor */}
                     {selectedPos && (
                         <CircleMarker
                             center={selectedPos}
                             radius={8}
-                            pathOptions={{ fillColor: '#06b6d4', color: '#fff', weight: 2, fillOpacity: 1 }}
+                            pathOptions={{ fillColor: 'transparent', color: '#06b6d4', weight: 2 }}
                         />
                     )}
 
-                    {/* Controls Overlay */}
-                    <div className="leaflet-top leaflet-right" style={{ pointerEvents: 'none' }}>
-                        <div className="leaflet-control flex flex-col gap-2 items-end mt-16 mr-4" style={{ pointerEvents: 'auto' }}>
-                            <LocateButton onLocationFound={(latlng) => {
-                                setSelectedPos(latlng);
-                                handleMapClick(latlng);
-                            }} />
+                    <div className="leaflet-top leaflet-right">
+                        <div className="leaflet-control mt-20 mr-4 pointer-events-auto">
+                            <LocateButton onLocationFound={handleMapClick} />
                         </div>
                     </div>
                 </MapContainer>
