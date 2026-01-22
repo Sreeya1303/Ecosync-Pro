@@ -1,20 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-
-// Mock Generator for ESP32 Data
-const generateMockPacket = () => {
-    const now = Date.now();
-    return {
-        deviceId: "ESP32_MOCK_001",
-        ts: now,
-        timestamp: new Date(now).toISOString(),
-        temperature: 24 + Math.random() * 2 - 1, // 23-25°C
-        humidity: 45 + Math.random() * 5 - 2.5,  // 42-48%
-        mq_raw: 300 + Math.random() * 50,
-        mq_ppm: 15 + Math.random() * 5,
-        battery: 85 + Math.sin(now / 10000) * 5,
-        rssi: -60 + Math.random() * 10
-    };
-};
+import { useState, useEffect, useRef } from 'react';
 
 export const useEsp32Stream = () => {
     const [stream, setStream] = useState({
@@ -25,18 +9,24 @@ export const useEsp32Stream = () => {
         alerts: []
     });
 
+    const [health, setHealth] = useState({
+        packetsPerMin: 0,
+        lastPacketTime: null,
+        status: 'DISCONNECTED',
+        confidence: 0
+    });
+
     const bufferRef = useRef([]);
+    const packetTimestamps = useRef([]);
 
     useEffect(() => {
         let isActive = true;
-        // Initially set connected to true, assuming we'll try to connect
-        setStream(s => ({ ...s, connected: true }));
 
         const fetchEsp32Data = async () => {
             if (!isActive) return;
 
             try {
-                const response = await fetch('/api/esp32-data'); // Replace with your actual API endpoint
+                const response = await fetch('http://localhost:8000/iot/latest');
                 const latestData = await response.json();
 
                 if (!latestData || !latestData.timestamp) {
@@ -55,6 +45,9 @@ export const useEsp32Stream = () => {
                     return;
                 }
 
+                // Calculate MQ Index (0-100 normalized from 200-800 raw range)
+                const mq_index = Math.min(100, Math.max(0, ((latestData.mq_raw || 0) - 200) / 6));
+
                 // Real Data Packet
                 const packet = {
                     deviceId: "ESP32_MAIN",
@@ -63,7 +56,7 @@ export const useEsp32Stream = () => {
                     temperature: latestData.temperature,
                     humidity: latestData.humidity,
                     mq_raw: latestData.mq_raw || 0,
-                    mq_ppm: latestData.pm25 || 0,
+                    mq_index: mq_index,
                     battery: 98,
                     rssi: -50,
                     pressure: latestData.pressure || 1013
@@ -71,6 +64,31 @@ export const useEsp32Stream = () => {
 
                 // Update History Buffer
                 bufferRef.current = [...bufferRef.current, packet].slice(-50);
+
+                // Update packet timestamps for health tracking
+                const currentTime = Date.now();
+                packetTimestamps.current = [...packetTimestamps.current, currentTime].filter(
+                    t => currentTime - t < 60000 // Keep last 60 seconds
+                );
+
+                // Calculate health metrics
+                const packetsPerMin = packetTimestamps.current.length;
+                let status = 'CONNECTED';
+                let confidence = 100;
+
+                if (latency > 5000) {
+                    status = 'STALE';
+                    confidence = 50;
+                } else if (latency > 2000) {
+                    confidence = 75;
+                }
+
+                setHealth({
+                    packetsPerMin,
+                    lastPacketTime: new Date(dataTime),
+                    status,
+                    confidence: Math.round(confidence * (packetsPerMin / 60))
+                });
 
                 // --- Real Smart Alerts ---
                 const newAlerts = [];
@@ -94,12 +112,18 @@ export const useEsp32Stream = () => {
 
             } catch (err) {
                 console.error("ESP32 Fetch Error:", err);
-                if (isActive) setStream(s => ({ ...s, connected: false, data: null }));
+                if (isActive) {
+                    setStream(s => ({ ...s, connected: false, data: null }));
+                    setHealth(h => ({ ...h, status: 'DISCONNECTED', confidence: 0 }));
+                }
             }
         };
 
         // Fetch data every second
         const interval = setInterval(fetchEsp32Data, 1000);
+
+        // Initial fetch
+        fetchEsp32Data();
 
         return () => {
             isActive = false;
@@ -107,5 +131,5 @@ export const useEsp32Stream = () => {
         };
     }, []);
 
-    return stream;
+    return { ...stream, health };
 };

@@ -4,8 +4,15 @@
 #include <ArduinoJson.h>
 #include <DHT.h>
 #include <Wire.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 
-// --- Configuration ---
+// --- WiFi Configuration (USER: Set your WiFi credentials here) ---
+const char* WIFI_SSID = "YourWiFiSSID";        // Change to your WiFi SSID
+const char* WIFI_PASSWORD = "YourWiFiPassword"; // Change to your WiFi Password
+const char* SERVER_URL = "http://192.168.1.100:8000/iot/data"; // Change to your backend IP:PORT
+
+// --- Hardware Configuration ---
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -54,6 +61,45 @@ void setup() {
   display.display();
   delay(1000);
   display.clearDisplay();
+
+  // WiFi Connection
+  Serial.println("Connecting to WiFi...");
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Connecting WiFi...");
+  display.display();
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi Connected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+    
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("WiFi Connected!");
+    display.print("IP: ");
+    display.println(WiFi.localIP());
+    display.display();
+    delay(2000);
+  } else {
+    Serial.println("\nWiFi Connection Failed!");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("WiFi Failed!");
+    display.println("Check credentials");
+    display.display();
+  }
 }
 
 void loop() {
@@ -77,6 +123,8 @@ void loop() {
   if (vibration == 0)
     vibration = 0.5 + ((float)random(0, 5) / 10.0);
 
+  // Read MQ-135 Gas Sensor (Analog for raw value)
+  int mq_raw = analogRead(VIB_PIN); // Use analog pin for MQ-135, adjust pin as needed
   int gasState = digitalRead(MQ_DO);
   float pm25 = (gasState == 0) ? 150.0 : 15.0;
 
@@ -88,6 +136,14 @@ void loop() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
+  
+  // Show WiFi status
+  if (WiFi.status() == WL_CONNECTED) {
+    display.print("WiFi: OK | ");
+  } else {
+    display.print("WiFi: -- | ");
+  }
+  
   display.print("STATUS: ");
 
   if (alert) {
@@ -117,11 +173,44 @@ void loop() {
     display.setTextSize(1);
     display.print("Temp: ");
     display.print(t);
-    display.print("C");
+    display.print("C H:");
+    display.print((int)h);
+    display.print("%");
   }
   display.display();
 
-  // 3. Serial JSON Output
+  // 3. Send Data to Backend via HTTP POST (if WiFi connected)
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(SERVER_URL);
+    http.addHeader("Content-Type", "application/json");
+
+    // Create JSON payload
+    StaticJsonDocument<256> doc;
+    doc["temperature"] = t;
+    doc["humidity"] = h;
+    doc["pressure"] = pressure;
+    doc["pm25"] = pm25;
+    doc["mq_raw"] = mq_raw;
+
+    String jsonPayload;
+    serializeJson(doc, jsonPayload);
+
+    // Send POST request
+    int httpResponseCode = http.POST(jsonPayload);
+
+    if (httpResponseCode > 0) {
+      Serial.print("HTTP Response: ");
+      Serial.println(httpResponseCode);
+    } else {
+      Serial.print("HTTP Error: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+  }
+
+  // 4. Serial JSON Output (for debugging)
   Serial.print("{");
   Serial.print("\"temperature\":");
   Serial.print(t);
@@ -132,15 +221,12 @@ void loop() {
   Serial.print("\"pressure\":");
   Serial.print(pressure);
   Serial.print(",");
-  Serial.print("\"vibration\":");
-  Serial.print(vibration);
-  Serial.print(",");
-  Serial.print("\"soil_moisture\":");
-  Serial.print(soil_moist);
-  Serial.print(",");
-  Serial.print("\"pm2_5\":");
+  Serial.print("\"pm25\":");
   Serial.print(pm25);
+  Serial.print(",");
+  Serial.print("\"mq_raw\":");
+  Serial.print(mq_raw);
   Serial.println("}");
 
-  delay(500);
+  delay(2000); // Send data every 2 seconds
 }
