@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import API_BASE_URL from '../config';
 
 export const useEsp32Stream = () => {
     const [stream, setStream] = useState({
@@ -26,7 +27,13 @@ export const useEsp32Stream = () => {
             if (!isActive) return;
 
             try {
-                const response = await fetch('http://localhost:8000/iot/latest');
+                // Use Production URL
+                const response = await fetch(`${API_BASE_URL}/api/filtered/latest`);
+                // Note: I see main.py has /api/filtered/latest which returns the "filtered" data structure 
+                // formatted almost exactly like the hook expects or close to it.
+                // The previous code called /iot/latest but main.py DOES NOT HAVE /iot/latest.
+                // It has /api/filtered/latest.
+                // Let's check main.py again to be sure what endpoint returns the data.
                 const latestData = await response.json();
 
                 if (!latestData || !latestData.timestamp) {
@@ -45,21 +52,20 @@ export const useEsp32Stream = () => {
                     return;
                 }
 
-                // Calculate MQ Index (0-100 normalized from 200-800 raw range)
-                const mq_index = Math.min(100, Math.max(0, ((latestData.mq_raw || 0) - 200) / 6));
+                const filtered = latestData.filtered || {};
 
                 // Real Data Packet
                 const packet = {
                     deviceId: "ESP32_MAIN",
                     ts: dataTime,
                     timestamp: latestData.timestamp,
-                    temperature: latestData.temperature,
-                    humidity: latestData.humidity,
-                    mq_raw: latestData.mq_raw || 0,
-                    mq_index: mq_index,
+                    temperature: filtered.temperature || 0,
+                    humidity: filtered.humidity || 0,
+                    mq_raw: filtered.mq_smoothed || 0, // Using smoothed as raw for display if raw not avail
+                    mq_index: Math.min(100, Math.max(0, ((filtered.mq_smoothed || 0) - 200) / 6)),
                     battery: 98,
                     rssi: -50,
-                    pressure: latestData.pressure || 1013
+                    pressure: filtered.pressure || 1013
                 };
 
                 // Update History Buffer
