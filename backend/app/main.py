@@ -405,14 +405,24 @@ class IoTSensorData(BaseModel):
 async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
     """
     Receives sensor data from ESP32 hardware AND persists it to DB + Broadcasts via WS.
+    Now with real-time Kalman filtering and outlier detection!
     """
+    from .services import kalman_filter
+    
     # 1. Create timestamp
     current_ts = dt.utcnow()
     
-    # 2. Persist to DB
+    # 2. Apply Kalman filtering to sensor data
+    filtered_temp, temp_confidence = kalman_filter.filter_temperature(data.temperature)
+    filtered_humidity, humidity_confidence = kalman_filter.filter_humidity(data.humidity)
+    filtered_pm25, pm25_confidence = kalman_filter.filter_pm25(data.pm25)
+    
+    # 3. Clean MQ sensor data (outlier detection + smoothing)
+    mq_cleaned = kalman_filter.clean_mq_data(data.mq_raw)
+    
+    # 4. Persist to DB
     try:
         # Find "Default ESP32" or create one
-        # Ideally payload should have device_id, but per user instructions we use a simple endpoint
         device_id = "ESP32_MAIN" 
         
         device = db.query(models.Device).filter(models.Device.id == device_id).first()
@@ -432,39 +442,59 @@ async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
             device.status = "online"
 
         # Calculate MQ Index (Server-side per requirements)
-        # Simple normalization: 0-100 based on raw 200-800 range
-        mq_norm = min(100, max(0, (data.mq_raw - 200) / 6))
+        mq_norm = min(100, max(0, (mq_cleaned["smoothed"] - 200) / 6))
 
+        # Store FILTERED values in database
         measurement = models.SensorData(
             device_id=device.id,
             timestamp=current_ts,
-            temperature=data.temperature,
-            humidity=data.humidity,
+            temperature=filtered_temp,
+            humidity=filtered_humidity,
             pressure=data.pressure,
             wind_speed=0.0,
-            pm2_5=data.pm25,
-            # We can use 'pm10' field for MQ Raw or add new column. Using pm10 as placeholder for MQ Raw per simple schema
-            pm10=data.mq_raw 
+            pm2_5=filtered_pm25,
+            pm10=mq_cleaned["smoothed"]  # Store smoothed MQ value
         )
         db.add(measurement)
         db.commit()
         
-        # 3. REALTIME BROADCAST
-        # Send JSON to all clients watching "ESP32_MAIN"
+        # 5. REALTIME BROADCAST with both raw and filtered data
         broadcast_payload = {
             "deviceId": device_id,
             "timestamp": current_ts.isoformat(),
-            "temperature": data.temperature,
-            "humidity": data.humidity,
-            "mq_raw": data.mq_raw,
+            # Raw values
+            "raw": {
+                "temperature": data.temperature,
+                "humidity": data.humidity,
+                "pm25": data.pm25,
+                "mq_raw": data.mq_raw
+            },
+            # Filtered values
+            "filtered": {
+                "temperature": round(filtered_temp, 2),
+                "humidity": round(filtered_humidity, 2),
+                "pm25": round(filtered_pm25, 2),
+                "mq_smoothed": mq_cleaned["smoothed"]
+            },
+            # Confidence scores
+            "confidence": {
+                "temperature": round(temp_confidence, 3),
+                "humidity": round(humidity_confidence, 3),
+                "pm25": round(pm25_confidence, 3)
+            },
+            # MQ sensor quality
+            "mq_quality": {
+                "is_outlier": mq_cleaned["is_outlier"],
+                "z_score": mq_cleaned["z_score"]
+            },
             "mq_index": mq_norm,
-            "pm25": data.pm25,
             "pressure": data.pressure
         }
         await manager.broadcast(broadcast_payload, "ESP32_MAIN")
         
     except Exception as e:
         print(f"Error saving IoT data: {e}")
+
         return {"status": "error", "detail": str(e)}
 
     return {"status": "ok", "message": "Data saved & broadcasted"}
@@ -482,5 +512,61 @@ async def get_latest_iot_data(db: Session = Depends(get_db)):
         "pm25": reading.pm2_5,
         "mq_raw": reading.pm10, # mapped
         "pressure": reading.pressure
+    }
+
+
+@app.get("/api/filtered/latest")
+async def get_filtered_iot_data(db: Session = Depends(get_db)):
+    """
+    NEW: Returns latest ESP32 data with Kalman filtering applied.
+    Includes raw values, filtered values, and confidence scores.
+    """
+    from .services import kalman_filter, aqi_calculator
+    
+    # Get latest reading
+    reading = db.query(models.SensorData).filter(
+        models.SensorData.device_id == "ESP32_MAIN"
+    ).order_by(models.SensorData.timestamp.desc()).first()
+    
+    if not reading:
+        return {
+            "status": "no_data",
+            "message": "No ESP32 data available"
+        }
+    
+    # Calculate AQI from PM2.5
+    aqi_result = aqi_calculator.calculate_overall_aqi({
+        "pm25": reading.pm2_5
+    })
+    
+    # Health recommendations
+    health_recs = aqi_calculator.get_health_recommendations(
+        aqi_result.get("aqi"),
+        aqi_result.get("dominant_pollutant_key")
+    )
+    
+    return {
+        "status": "ok",
+        "timestamp": reading.timestamp.isoformat(),
+        "deviceId": "ESP32_MAIN",
+        # Filtered values (stored in DB after Kalman filtering)
+        "filtered": {
+            "temperature": reading.temperature,
+            "humidity": reading.humidity,
+            "pm25": reading.pm2_5,
+            "mq_smoothed": reading.pm10,
+            "pressure": reading.pressure
+        },
+        # AQI and air quality info
+        "air_quality": {
+            "aqi": aqi_result.get("aqi"),
+            "category": aqi_result.get("category"),
+            "color": aqi_result.get("color"),
+            "dominant_pollutant": aqi_result.get("dominant_pollutant")
+        },
+        # Health recommendations
+        "health": health_recs,
+        # Note: Raw values available via WebSocket for real-time comparison
+        "note": "Values shown are Kalman-filtered for accuracy"
     }
 
