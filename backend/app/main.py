@@ -35,6 +35,10 @@ app = FastAPI(
     version="2.0.0"
 )
 
+@app.get("/")
+def health_check():
+    return {"status": "active", "service": "IoT Backend", "timestamp": dt.utcnow()}
+
 # --- Database Initialization ---
 try:
     models.Base.metadata.create_all(bind=database.engine)
