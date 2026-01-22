@@ -65,55 +65,13 @@ def get_thingspeak_latest(channel_id: str):
     except Exception as e:
         return {"error": str(e)}
 
-# --- Tool Definitions (Schema for OpenAI) ---
+# --- Tool Definitions (Gemini Native) ---
 
-TOOLS_SCHEMA = [
-    {
-        "type": "function",
-        "function": {
-            "name": "geocode_city",
-            "description": "Get latitude and longitude for a city name.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "city_name": {"type": "string", "description": "The city name, e.g. Bangalore"}
-                },
-                "required": ["city_name"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather",
-            "description": "Get current weather and summary for a location (lat/lon). calling geocode_city first is usually required.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "lat": {"type": "number", "description": "Latitude"},
-                    "lon": {"type": "number", "description": "Longitude"}
-                },
-                "required": ["lat", "lon"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_thingspeak_latest",
-            "description": "Get latest IoT sensor readings from a ThingSpeak Channel ID.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "channel_id": {"type": "string", "description": "The numeric Channel ID (e.g., 12397)"}
-                },
-                "required": ["channel_id"]
-            }
-        }
-    }
-]
+# Gemini SDK takes the functions directly
+GEMINI_TOOLS = [geocode_city, get_weather, get_thingspeak_latest]
 
-# Map names to functions for execution
+# Map names to functions for execution (still needed for local lookup if manual, 
+# but Gemini SDK handles execution automatically in many cases, though we might interpret the response manually)
 AVAILABLE_TOOLS = {
     "geocode_city": geocode_city,
     "get_weather": get_weather,

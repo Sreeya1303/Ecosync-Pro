@@ -10,7 +10,7 @@ numpy
 filterpy
 httpx
 requests
-openai
+google-generativeai
 pyserial
 google-auth
 python-dotenv

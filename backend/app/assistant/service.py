@@ -1,77 +1,55 @@
 import os
-import json
-from openai import OpenAI
-from .tools import TOOLS_SCHEMA, AVAILABLE_TOOLS
+import google.generativeai as genai
+from google.generativeai.types import FunctionDeclaration, Tool
+from .tools import GEMINI_TOOLS, AVAILABLE_TOOLS
 
-client = None
+# Configure Gemini
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
 
-def get_client():
-    global client
-    api_key = os.getenv("OPENAI_API_KEY")
+model = None
+
+def get_model():
+    global model
     if not api_key:
         return None
-    if not client:
-        client = OpenAI(api_key=api_key)
-    return client
+    
+    if not model:
+        # Create the model with tools
+        tools = genai.protos.Tool(function_declarations=[
+             # We rely on the SDK's auto-conversion or define manual if SDK fails auto-inspect
+             # For simplicity in this environment, let's trust the auto-tool detection if using genai.GenerativeModel(tools=...)
+             # But the safest way for "google-generativeai" is just passing the function list.
+             # SDK automatically inspects docstrings.
+        ])
+        
+        # Initialize Gemini Pro
+        model = genai.GenerativeModel(
+            model_name='gemini-2.0-flash', # Fast and smart
+            tools=GEMINI_TOOLS
+        )
+    return model
 
 async def process_chat(user_message: str):
-    client = get_client()
-    if not client:
-        return {
-            "reply": "I cannot answer right now because the OPENAI_API_KEY is missing from the server environment.",
-            "data": None
-        }
-
-    messages = [
-        {"role": "system", "content": "You are a helpful IoT Assistant. You have access to real-time weather and IoT data tools. Use them to answer user questions. Always mention the source of your data (e.g. Open-Meteo, ThingSpeak). If a user asks for weather in a city, first geocode it, then get weather. Be concise."}
-    ]
-    messages.append({"role": "user", "content": user_message})
-
     try:
-        # 1. First Call: Let model decide if it needs tools
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # Or gpt-4o
-            messages=messages,
-            tools=TOOLS_SCHEMA,
-            tool_choice="auto"
-        )
-        
-        response_message = response.choices[0].message
-        tool_calls = response_message.tool_calls
+        chat_model = get_model()
+        if not chat_model:
+             return {
+                "reply": "I cannot answer because the GEMINI_API_KEY is missing.",
+                "data": None
+            }
 
-        # 2. If tools are called, execute them
-        if tool_calls:
-            # Append the assistant's "thought process" (tool call request) to history
-            messages.append(response_message)
-            
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
-                
-                function_to_call = AVAILABLE_TOOLS.get(function_name)
-                if function_to_call:
-                    print(f"Executing Tool: {function_name} with {function_args}")
-                    tool_output = function_to_call(**function_args)
-                    
-                    # Append result to history
-                    messages.append({
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": json.dumps(tool_output)
-                    })
-            
-            # 3. Second Call: Get final natural language response
-            final_response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=messages
-            )
-            return {"reply": final_response.choices[0].message.content, "data": None}
+        # Start a chat session (stateless for this API, but we simulate one-turn)
+        chat = chat_model.start_chat(enable_automatic_function_calling=True)
         
-        else:
-            # No tools needed, just return reply
-            return {"reply": response_message.content, "data": None}
+        # System instruction is implicit in the prompt or added as context
+        system_prompt = "You are a helpful IoT Assistant. Use the available tools to fetch real-time weather and IoT data. Always cite sources. If asked for weather in a city, geocode it first."
+        
+        response = chat.send_message(f"{system_prompt}\n\nUser: {user_message}")
+        
+        return {"reply": response.text, "data": None}
 
     except Exception as e:
-        print(f"AI Error: {e}")
-        return {"reply": "Sorry, I encountered an error connecting to the AI service.", "data": None}
+        print(f"Gemini AI Error: {e}")
+        return {"reply": "Sorry, I encountered an error connecting to the Gemini AI service.", "data": None}
