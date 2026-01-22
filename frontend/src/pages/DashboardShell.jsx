@@ -12,7 +12,9 @@ const DashboardShell = () => {
     const [mode, setMode] = useState(() => {
         const urlMode = searchParams.get('mode');
         const storedMode = localStorage.getItem('dashboardMode');
-        return (urlMode === 'lite' || urlMode === 'pro') ? urlMode : (storedMode || 'lite');
+        const planMode = localStorage.getItem('plan'); // Get plan from login
+        // Priority: URL -> Stored Mode -> Login Plan -> Lite
+        return (urlMode === 'lite' || urlMode === 'pro') ? urlMode : (storedMode || planMode || 'lite');
     });
 
     // Sync State <-> URL <-> Storage
