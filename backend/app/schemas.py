@@ -54,10 +54,17 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    first_name: Optional[str] = "Operator"
+    last_name: Optional[str] = "Null"
+    plan: Optional[str] = "lite"
 
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    first_name: Optional[str]
+    last_name: Optional[str]
+    plan: str
+    is_verified: bool
 
     class Config:
         from_attributes = True

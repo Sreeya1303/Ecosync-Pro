@@ -30,6 +30,15 @@ class User(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     
+    # Profile & Plan
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    plan = Column(String, default="lite") # lite, pro
+    
+    # Verification
+    is_verified = Column(Boolean, default=False)
+    otp_secret = Column(String, nullable=True)
+    
     # Relationship
     sensor_readings = relationship("SensorData", back_populates="owner")
     diary_entries = relationship("DiaryEntry", back_populates="owner")
