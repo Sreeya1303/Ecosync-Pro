@@ -29,7 +29,9 @@ You will need API keys for these services to fully enable Pro Mode and AI featur
 
 ---
 
-## 3. Local Installation Steps
+## 3. Local Installation Steps (Automated)
+
+We have created helper scripts to make setup instantaneous.
 
 ### Step A: Clone Repository
 ```bash
@@ -37,25 +39,34 @@ git clone https://github.com/projectc943-prog/capstone-iot.git
 cd capstone-iot
 ```
 
-### Step B: Backend Setup
-1.  Navigate to folder: `cd backend`
-2.  Create Virtual Environment: `python3 -m venv venv`
-3.  Activate it:
-    *   Mac/Linux: `source venv/bin/activate`
-    *   Windows: `venv\Scripts\activate`
-4.  Install Requirements: `pip install -r requirements.txt`
-5.  Setup Environment:
-    *   Create `.env` file from `.env.example`
-    *   Paste your API Keys.
-6.  Run Server: `uvicorn app.main:app --reload`
-    *   Running at: `http://localhost:8000`
+### Step B: One-Click Setup
+Run this script to automatically install all dependencies for both Backend (Python) and Frontend (Node.js).
+```bash
+python3 scripts/setup.py
+```
 
-### Step C: Frontend Setup
-1.  Open new terminal.
-2.  Navigate to folder: `cd frontend`
-3.  Install Dependencies: `npm install`
-4.  Run App: `npm run dev`
-    *   Running at: `http://localhost:5173`
+### Step C: Run Everything
+Run this script to launch both the Backend Server and Frontend Dashboard simultaneously.
+```bash
+python3 scripts/start.py
+```
+*   **Backend** will start at: `http://localhost:8000`
+*   **Frontend** will start at: `http://localhost:5173`
+
+---
+
+## 4. Manual Installation (Alternative)
+If the scripts don't work for you, use these standard commands:
+
+### Backend
+1.  `cd backend`
+2.  `python3 -m pip install -r requirements.txt`
+3.  `uvicorn app.main:app --reload`
+
+### Frontend
+1.  `cd frontend`
+2.  `npm install`
+3.  `npm run dev`
 
 ---
 
