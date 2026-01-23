@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import DashboardShell from './layouts/DashboardLayout';
+import Sidebar from './layouts/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import AIAssistant from './components/AIAssistant';
 import { AuthProvider, useAuth } from './contexts/AuthContext';

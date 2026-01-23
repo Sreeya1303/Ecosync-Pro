@@ -72,4 +72,12 @@ npm run dev
 
 ---
 
+## 👥 Contributors (Team EcoSync)
+*   **[Student Name 1]**: Lead Developer / Backend Architect
+*   **[Student Name 2]**: Frontend UI/UX Designer
+*   **[Student Name 3]**: Hardware Specialist (ESP32)
+*   **[Student Name 4]**: Documentation & QA
+
+---
+
 *Built for Capstone 2025* 🌍
