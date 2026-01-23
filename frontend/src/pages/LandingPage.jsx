@@ -178,6 +178,83 @@ const LandingPage = () => {
                 </div>
             </div>
 
+            {/* --- PRICING / COMPARISON CHART --- */}
+            <div className="py-24 px-6 max-w-6xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-4">SaaS Tier Comparison</h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">Choose the intelligence level that fits your operational needs.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+
+                    {/* LITE PLAN */}
+                    <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-8 hover:border-cyan-500/30 transition-all group">
+                        <div className="flex justify-between items-start mb-8">
+                            <div>
+                                <h3 className="text-2xl font-black text-cyan-400">LITE CORE</h3>
+                                <p className="text-sm text-slate-500 mt-1">For Local Monitoring</p>
+                            </div>
+                            <div className="bg-cyan-500/10 px-3 py-1 rounded text-cyan-400 font-bold text-xs">FREE</div>
+                        </div>
+                        <ul className="space-y-4 mb-8">
+                            <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Real-time Sensor Data
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Direct Device View
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Basic Alerts
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-600 text-sm line-through">
+                                <div className="w-1.5 h-1.5 bg-slate-700 rounded-full"></div> AI Predictions
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-600 text-sm line-through">
+                                <div className="w-1.5 h-1.5 bg-slate-700 rounded-full"></div> Sensor Fusion
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* PRO PLAN */}
+                    <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 border border-emerald-500/30 rounded-3xl p-8 hover:shadow-[0_0_40px_-5px_rgba(16,185,129,0.2)] transition-all transform md:scale-105 z-10">
+                        <div className="absolute -top-4 right-8 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-widest shadow-lg">
+                            RECOMMENDED
+                        </div>
+                        <div className="flex justify-between items-start mb-8">
+                            <div>
+                                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">PRO NEXUS</h3>
+                                <p className="text-sm text-slate-400 mt-1">For Enterprise Intelligence</p>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-emerald-400 font-black text-xl">$10</div>
+                                <div className="text-[10px] text-slate-500 uppercase">Per Node / Month</div>
+                            </div>
+                        </div>
+                        <ul className="space-y-4 mb-8">
+                            <li className="flex items-center gap-3 text-white text-sm font-bold">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Real-time Sensor Data
+                            </li>
+                            <li className="flex items-center gap-3 text-white text-sm font-bold">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> AI Safety Officer (Gemini)
+                            </li>
+                            <li className="flex items-center gap-3 text-white text-sm font-bold">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Kalman Filter Fusion
+                            </li>
+                            <li className="flex items-center gap-3 text-white text-sm font-bold">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Predictive Analytics
+                            </li>
+                            <li className="flex items-center gap-3 text-white text-sm font-bold">
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> SMS / Call Alerts
+                            </li>
+                        </ul>
+                        <button onClick={() => navigate('/login')} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20">
+                            DEPLOY PRO
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
             {/* --- FOOTER --- */}
             <footer className="py-8 text-center text-slate-600 text-xs tracking-widest uppercase border-t border-white/5">
                 <p>&copy; 2026 S4 • Advanced Environmental Solutions</p>

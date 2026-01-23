@@ -33,7 +33,7 @@ const Sidebar = () => {
             {/* Brand Icon */}
             <div className="mb-12 p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20 flex flex-col items-center justify-center">
                 <Zap className="w-6 h-6 text-white" fill="white" />
-                <span className="text-[10px] font-black text-white mt-1">S4</span>
+                <span className="text-[10px] font-black text-white mt-1">ECOSYNC</span>
             </div>
 
             {/* Navigation */}
