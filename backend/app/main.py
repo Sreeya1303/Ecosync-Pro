@@ -50,10 +50,7 @@ except Exception as e:
 # --- CORS Configuration ---
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 ALLOWED_ORIGINS = [
-    "https://environmental-8b801.web.app",
-    "https://environmental-8b801.firebaseapp.com",
-    "http://localhost:5173",
-    "http://localhost:3000",
+    "*"
 ]
 
 app.add_middleware(

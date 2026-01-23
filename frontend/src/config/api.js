@@ -2,7 +2,7 @@
 const isDev = import.meta.env.DEV;
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-    (isDev ? 'http://localhost:8000' : 'https://your-backend-url.run.app');
+    (isDev ? 'http://localhost:8000' : 'https://projectc943-project943.hf.space');
 
 export const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL ||
     (isDev ? 'ws://localhost:8000' : 'wss://your-backend-url.run.app');
