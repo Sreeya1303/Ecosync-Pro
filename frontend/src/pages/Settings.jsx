@@ -133,12 +133,27 @@ const Settings = () => {
                                 <div className="flex items-center gap-3">
                                     <Activity className="text-slate-400" />
                                     <div>
-                                        <p className="text-sm font-bold text-slate-200">SMS / OTP Alerts</p>
-                                        <p className="text-xs text-slate-500">2FA and urgent text warnings</p>
+                                        <p className="text-sm font-bold text-slate-200">Emergency Call / SMS</p>
+                                        <p className="text-xs text-slate-500">Auto-dial when thresholds breached</p>
                                     </div>
                                 </div>
                                 <Toggle checked={config.smsAlerts} onChange={() => handleChange('smsAlerts', !config.smsAlerts)} />
                             </div>
+                            {config.smsAlerts && (
+                                <div className="animate-in slide-in-from-top duration-300">
+                                    <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Primary Contact Number</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="+91 98765 43210"
+                                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                        onChange={(e) => {
+                                            // Mock saving locally for demo
+                                            localStorage.setItem('emergency_contact', e.target.value);
+                                        }}
+                                        defaultValue={localStorage.getItem('emergency_contact') || ''}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

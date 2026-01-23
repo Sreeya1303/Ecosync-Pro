@@ -120,6 +120,17 @@ const ProDashboard = ({ sensorData, alerts, connectionStatus }) => {
                 <div className="w-full p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 flex items-center gap-3 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.2)]">
                     <AlertTriangle className="text-red-500" />
                     <span className="font-bold">CRITICAL ALERT:</span> {alerts[0].message}
+                    {localStorage.getItem('emergency_contact') && (
+                        <div className="ml-auto flex items-center gap-2 bg-red-600/20 px-3 py-1 rounded-lg border border-red-500/50">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                            <span className="text-xs font-mono font-bold text-red-200">
+                                DIALING {localStorage.getItem('emergency_contact')}...
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
 
