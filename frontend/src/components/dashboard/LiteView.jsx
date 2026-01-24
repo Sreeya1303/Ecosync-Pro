@@ -188,7 +188,6 @@ const ConnectionConfig = () => {
         setStatus('SAVING');
         try {
             // Mock API call - In real scenario this would POST to /api/config/target
-            console.log("Configuring ESP32 target:", ip, ssid);
             await new Promise(r => setTimeout(r, 1000));
             setStatus('SAVED');
             setTimeout(() => setStatus('IDLE'), 3000);
