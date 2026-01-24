@@ -243,43 +243,35 @@ const IndoorOutdoorPanel = ({ local, outdoor, recommendation }) => {
 const ForecastPanel = ({ forecast, bestWindows }) => {
     // forecast: [{time, temp, pm25, aqi}, ...]
 
-    // Find absolute "Best" time string for headline
-    const bestOne = bestWindows && bestWindows.length > 0 ? bestWindows[0].time : 'N/A';
-
     return (
         <Card className="col-span-1 lg:col-span-2 relative p-4 flex flex-col h-[300px]">
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-4">
                 <div>
                     <h3 className="text-sm font-bold text-gray-200 flex items-center gap-2">
                         <Sun size={14} className="text-amber-400" />
-                        24H HEALTH FORECAST
+                        24H DETAILED FORECAST
                     </h3>
                     <p className="text-[10px] text-gray-500 mt-1">
-                        Best time to go outside: <span className="text-emerald-400 font-bold">{bestOne}</span>
+                        Hourly Temperature & Air Quality
                     </p>
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={forecast} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.5} />
-                        <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 10 }} interval={2} />
-                        <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
-                            itemStyle={{ fontSize: '11px', color: '#E5E7EB' }}
-                            labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                        />
-                        <Bar dataKey="aqi" radius={[2, 2, 0, 0]} maxBarSize={40}>
-                            {forecast.map((entry, index) => {
-                                // Highlight if this entry is in "Best Windows"
-                                const isBest = bestWindows?.some(b => b.time === entry.time);
-                                return <Cell key={`cell-${index}`} fill={isBest ? '#10b981' : entry.aqi > 100 ? '#ef4444' : '#6366f1'} opacity={isBest ? 1 : 0.6} />;
-                            })}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="flex-1 w-full min-h-0 overflow-x-auto text-xs">
+                <div className="flex min-w-max pb-2">
+                    {forecast.map((item, idx) => (
+                        <div key={idx} className={`flex flex-col items-center gap-2 px-3 py-2 border-r border-gray-800 last:border-0 ${idx === 0 ? 'bg-white/5 rounded-l-lg' : ''}`}>
+                            <span className="text-gray-400 text-[10px]">{item.time}</span>
+                            <CloudSun size={16} className="text-gray-300" />
+                            <span className="font-bold text-white text-sm">{item.temp}°</span>
+                            <div className="flex flex-col items-center gap-0.5 mt-1">
+                                <span className="text-[9px] text-blue-400">0%</span>
+                                <div className={`w-8 h-1 rounded-full ${item.aqi < 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                <span className="text-[9px] text-gray-500">AQI {item.aqi}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </Card>
     );
