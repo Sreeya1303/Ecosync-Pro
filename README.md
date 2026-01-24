@@ -1,111 +1,79 @@
-# EcoSync S4: Intelligent Environmental Monitoring System 🌍
-> **A Next-Gen IoT Platform for Real-Time Air Quality & Environmental Tracking**
-
-![Project Banner](https://placehold.co/1200x400/0f172a/22d3ee?text=EcoSync+S4+Dashboard)
-
-## 🚀 Overview
-**EcoSync S4** is a demonstration of a modern, scalable IoT architecture designed to bridge the gap between low-cost hardware and enterprise-grade environmental analysis. Unlike traditional student projects that simply display sensor values, EcoSync S4 implements a **Dual-Tier SaaS Architecture**, **AI-Driven Predictive Analytics**, and **Sensor Fusion** algorithms to provide actionable insights.
-
-This repository contains the complete source code for:
-*   **Hardware**: ESP32 Firmware (C++) with HTTP Handshake & OLED Feedback.
-*   **Backend**: Python FastAPI with Sensor Fusion Engine & Google Gemini AI.
-*   **Frontend**: React + Vite Dashboard with Glassmorphism UI & PWA support.
-
----
-
-## 🌟 Key Features ("Top Notch")
-
-### 1. Dual-Mode Capability (Lite vs Pro)
-The system features two distinct operational modes to demonstrate capability scaling and access control.
-*   **Lite Mode**: streamlined access to real-time environmental data.
-*   **Pro Mode**: Unlocks advanced features like **AI Assistant**, **Historical Analytics**, and **Sensor Fusion**.
-
-
-### 2. Advanced Sensor Fusion (Pro Feature)
-While the system collects **real-time data** from physical sensors (DHT11 & MQ-135), the Pro mode enhances this by:
-*   **Validation**: Comparing local readings against public weather APIs (OpenMeteo) to identify sensor drift.
-*   **Fusion**: Using a **Kalman Filter** to weigh local vs. public data, ensuring the dashboard shows the most probable environmental state even if one source is noisy.
-
-### 3. AI Safety Officer (Google Gemini)
-*   The system doesn't just show "CO2: 400ppm".
-*   It analyzes the combination of Temp+Humidity+Gas using **Google Gemini AI**.
-*   **Result**: "High Humidity + High Temp = Mold Risk. Suggest ventilation."
-
-### 4. Hardware "Handshake" Protocol
-*   Bi-directional communication verification.
-*   The ESP32 sends data and **waits for a 200 OK** from the server.
-*   **Visual Feedback**: Green LED blinks 3 times ONLY if the server accepts the data.
+<div align="center">
+  <img src="https://img.shields.io/badge/EcoSync-S4-emerald?style=for-the-badge&logo=leaf" alt="EcoSync Logo" />
+  
+  # EcoSync S4: Intelligent Environmental Monitoring
+  
+  **Next-Gen IoT Dashboard for Real-Time & Predictive Climate Analysis**
+  
+  [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](https://github.com/projectc943-prog/Ecosync)
+  [![Live Demo](https://img.shields.io/badge/Live-Demo-orange?style=flat-square&logo=netlify)](https://ecosync-s4-demo.netlify.app)
+  [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+</div>
 
 ---
 
-## 📸 Screenshots & Usage
+## 🚀 Live Demo
+**Access the Dashboard Here:** [**https://ecosync-s4-demo.netlify.app**](https://ecosync-s4-demo.netlify.app)  
+*(Note: Create a new account to experience the Bio-Auth Login flow)*
 
-### The Pro Dashboard
-*A futuristic, glass-depth interface monitoring real-time metrics.*
-![Dashboard](https://placehold.co/800x450/1e293b/4f46e5?text=Pro+Dashboard+Interface)
+---
 
-### Live Map & Predictive Zone
-*Leaflet.js integration showing sensor nodes and Air Quality heatmaps.*
-![Live Map](https://placehold.co/800x450/1e293b/10b981?text=Live+Map+Visualization)
+## 🌟 Project Overview
+EcoSync S4 is a state-of-the-art environmental monitoring system designed for precision, scalability, and user engagement. It fuses a robust ESP32-based hardware layer with a "Living UI" frontend to provide actionable insights into air quality and climate conditions.
 
-### Hardware Setup
-*ESP32 + DHT11 + MQ135 + OLED wiring diagram.*
-![Hardware](https://placehold.co/800x450/1e293b/f59e0b?text=Hardware+Setup)
+### Key Features
+*   **🟢 Pro Mode (Cloud)**: Full historical analysis, global mapping, and AI-driven insights powered by **Supabase**.
+*   **🟡 Light Mode (Offline)**: Zero-latency local monitoring via **Web Serial API** (USB).
+*   **🔐 Bio-Authenticated**: A secure, themed login experience mimicking biometric scanning.
+*   **📱 Responsive**: Seamless experience across Desktop, Tablet, and Mobile.
 
 ---
 
 ## 🛠️ Technology Stack
-| Layer | Tech Stack | Key Libraries |
+
+| Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Frontend** | React, Vite | `recharts`, `lucide-react`, `leaflet`, `tailwindcss` |
-| **Backend** | Python, FastAPI | `sqlalchemy`, `pydantic`, `google-generativeai`, `numpy` |
-| **Hardware** | ESP32 (C++) | `ArduinoJson`, `Adafruit_GFX`, `HTTPClient` |
-| **Database** | SQLite (Dev) / PostgreSQL (Prod) | `alembic` for migrations |
-| **DevOps** | Docker | Hugging Face Spaces, Firebase Hosting |
+| **Frontend** | React + Vite | High-performance SPA with TailwindCSS |
+| **Backend** | Supabase | Auth, PostgreSQL Database, Realtime Subscriptions |
+| **Hardware** | ESP32 | Dual-Core MCU for WiFi & Serial comms |
+| **Sensors** | DHT22 / BMP180 | Precision Temperature, Humidity, Pressure |
+| **Hosting** | Netlify | Edge-optimized delivery |
 
 ---
 
-## ⚡ Quick Start Guide
+## 📂 Repository Structure
 
-### Prerequisites
-*   Node.js v18+
-*   Python 3.9+
-*   ESP32 Dev Board
+-   `frontend/`: The User Interface (React).
+-   `hardware/`: Firmware for the Sensing Node.
+-   `docs/`: Detailed Implementation Guides.
+    -   [Deployment Guide](docs/deployment_guide.md)
+    -   [Features Overview](docs/features.md)
+    -   [Codebase Map](docs/code_map.md)
 
-### 1. Backend Setup
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python main.py
-# Server runs at http://localhost:8000
-```
+---
+
+## ⚡ Quick Start
+
+### 1. Hardware Setup
+Flash the `hardware/src/main.cpp` via PlatformIO to your ESP32. Ensure you set your WiFi credentials or just plug it in via USB for Light Mode.
 
 ### 2. Frontend Setup
 ```bash
+git clone https://github.com/projectc943-prog/Ecosync.git
 cd frontend
 npm install
 npm run dev
-# App runs at http://localhost:5173
 ```
 
-### 3. Hardware Flash
-1. Open `hardware/src/main.cpp` in Arduino IDE.
-2. Update `WIFI_SSID`, `WIFI_PASSWORD`, and `SERVER_URL`.
-3. Flash to ESP32.
+### 3. Environment Variables
+Create a `.env` file in `frontend/`:
+```env
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
 
 ---
 
-## ⚠️ Disclaimer
-This software is provided for educational and demonstration purposes only. The authors make no warranties, expressed or implied, regarding the accuracy, reliability, or completeness of the data collected or the safety advice generated. 
-
-*   **Not a Medical Device**: The health recommendations are AI-generated and sensor-based; they are not a substitute for professional medical advice.
-*   **Hardware Safety**: Please handle all electronic components with care. The authors are not responsible for any hardware damage or personal injury resulting from the replication of this project.
-*   **Liability**: Use this software and hardware design at your own risk. The creators shall not be held liable for any damages arising from its use.
-
----
-
-## 📄 License
-This project is open-source and available under the **MIT License**.
-All assets and code created by **The Authors**.
+<div align="center">
+  <sub>Developed by Capstone Team S4 • 2026</sub>
+</div>
