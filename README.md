@@ -18,59 +18,61 @@
 
 ---
 
-## 🌟 Project Overview
-EcoSync S4 is a state-of-the-art environmental monitoring system designed for precision, scalability, and user engagement. It fuses a robust ESP32-based hardware layer with a "Living UI" frontend to provide actionable insights into air quality and climate conditions.
+## 🏗️ System Architecture
 
-### Key Features
-*   **🟢 Pro Mode (Cloud)**: Full historical analysis, global mapping, and AI-driven insights powered by **Supabase**.
-*   **🟡 Light Mode (Offline)**: Zero-latency local monitoring via **Web Serial API** (USB).
-*   **🔐 Bio-Authenticated**: A secure, themed login experience mimicking biometric scanning.
-*   **📱 Responsive**: Seamless experience across Desktop, Tablet, and Mobile.
+EcoSync S4 moves beyond simple data logging by utilizing a separated **Client-Server-Hardware** architecture.
+
+```mermaid
+graph TD
+    User[User Device] -->|HTTPS| CDN[Netlify CDN]
+    CDN -->|Load| PWA[React Frontend]
+    PWA -->|Supabase Client| Auth[Auth Service]
+    PWA -->|Realtime Sub| DB[(PostgreSQL DB)]
+    ESP32[Hardware Node] -->|REST API| DB
+    ESP32 -->|Web Serial| PWA_Local[Light Mode]
+```
+
+### Why This Architecture?
+1.  **Scalability**: By using **Supabase (PostgreSQL)**, we can handle millions of sensor readings without managing a backend server manually.
+2.  **Global Access**: The Frontend is deployed on **Netlify Edge**, ensuring sub-second load times worldwide.
+3.  **Reliability**: The **Dual-Mode** system ensures functionality even during internet outages via the Serial fallback.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Component | Technology | Description |
+| Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | React + Vite | High-performance SPA with TailwindCSS |
-| **Backend** | Supabase | Auth, PostgreSQL Database, Realtime Subscriptions |
-| **Hardware** | ESP32 | Dual-Core MCU for WiFi & Serial comms |
-| **Sensors** | DHT22 / BMP180 | Precision Temperature, Humidity, Pressure |
-| **Hosting** | Netlify | Edge-optimized delivery |
+| **Frontend** | **React + Vite** | High-performance SPA with fast hot-reload |
+| **Styling** | **TailwindCSS** | Custom "Bio-Tech" theme with glassmorphism |
+| **Backend** | **Supabase** | Auth, Database, and Realtime subscriptions |
+| **Hardware** | **ESP32** | Dual-Core MCU for handling sensors |
+| **Deployment** | **Netlify** | CI/CD pipeline and Edge hosting |
 
 ---
 
-## 📂 Repository Structure
+## 🌟 Key Features
 
--   `frontend/`: The User Interface (React).
--   `hardware/`: Firmware for the Sensing Node.
--   `docs/`: Detailed Implementation Guides.
-    -   [Deployment Guide](docs/deployment_guide.md)
-    -   [Features Overview](docs/features.md)
-    -   [Codebase Map](docs/code_map.md)
+### 🟢 Pro Mode (Cloud)
+-   **Historical Data**: View 24h temperature trends stored in Postgres.
+-   **Global Map**: Visualize sensor nodes on a Leaflet map.
+-   **Secure**: Row Level Security (RLS) protects data.
+
+### 🟡 Light Mode (Edge)
+-   **Zero-Internet**: Connect directly via USB Cable.
+-   **Real-Time**: 100ms latency for instant debugging.
+-   **Privacy-First**: No data leaves your local machine.
 
 ---
 
-## ⚡ Quick Start
+## 📂 Documentation (Updated)
 
-### 1. Hardware Setup
-Flash the `hardware/src/main.cpp` via PlatformIO to your ESP32. Ensure you set your WiFi credentials or just plug it in via USB for Light Mode.
+Everything you need to replicate this project:
 
-### 2. Frontend Setup
-```bash
-git clone https://github.com/projectc943-prog/Ecosync.git
-cd frontend
-npm install
-npm run dev
-```
-
-### 3. Environment Variables
-Create a `.env` file in `frontend/`:
-```env
-VITE_SUPABASE_URL=your_project_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
-```
+-   **[Deployment Guide](docs/deployment_guide.md)**: How to set up Netlify and Supabase.
+-   **[Features Overview](docs/features.md)**: Deep dive into the Bio-Auth and Dashboard modes.
+-   **[Codebase Map](docs/code_map.md)**: Structure of `frontend/` and `hardware/`.
+-   **[Implementation Details](docs/implementation_details.md)**: Technical specs.
 
 ---
 
