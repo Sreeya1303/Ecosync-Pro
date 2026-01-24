@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, User, Mail, ArrowRight, ShieldCheck, Cpu, Activity, Zap, Sprout, Scan, Leaf } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import loginBg from '../assets/login_bg.png';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -251,7 +252,7 @@ const LoginPage = () => {
                 {/* Generated Background Image */}
                 <div
                     className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity hover:scale-105 transition-transform duration-[60s]"
-                    style={{ backgroundImage: "url('/src/assets/login_bg.png')" }}
+                    style={{ backgroundImage: `url(${loginBg})` }}
                 ></div>
 
                 {/* Overlay Gradients */}
