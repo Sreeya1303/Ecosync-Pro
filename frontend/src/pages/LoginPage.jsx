@@ -248,6 +248,15 @@ const LoginPage = () => {
         <div className="min-h-screen w-full flex items-center justify-center bg-[#022c22] font-outfit relative overflow-hidden selection:bg-emerald-500/30">
             {/* Background Effects - BIO THEME */}
             <div className="fixed inset-0 bg-[#022c22] overflow-hidden">
+                {/* Generated Background Image */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity hover:scale-105 transition-transform duration-[60s]"
+                    style={{ backgroundImage: "url('/src/assets/login_bg.png')" }}
+                ></div>
+
+                {/* Overlay Gradients */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#022c22] via-[#022c22]/80 to-transparent"></div>
+
                 {/* Grid */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#064e3b_1px,transparent_1px),linear-gradient(to_bottom,#064e3b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
 
