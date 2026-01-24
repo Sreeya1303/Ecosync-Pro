@@ -1,20 +1,22 @@
 {
     "name": "EcoSync S4",
     "short_name": "EcoSync",
-    "start_url": "/",
+    "description": "Intelligent Environmental Monitoring Dashboard",
+    "theme_color": "#064e3b",
+    "background_color": "#022c22",
     "display": "standalone",
-    "background_color": "#020617",
-    "theme_color": "#06b6d4",
+    "orientation": "portrait",
+    "start_url": "/",
     "icons": [
         {
-            "src": "/vite.svg",
+            "src": "pwa-192x192.png",
             "sizes": "192x192",
-            "type": "image/svg+xml"
+            "type": "image/png"
         },
         {
-            "src": "/vite.svg",
+            "src": "pwa-512x512.png",
             "sizes": "512x512",
-            "type": "image/svg+xml"
+            "type": "image/png"
         }
     ]
 }
