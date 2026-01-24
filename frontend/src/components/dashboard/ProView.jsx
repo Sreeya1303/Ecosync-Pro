@@ -326,32 +326,40 @@ const FingerprintChart = ({ data }) => (
 const FusionChart = ({ history }) => {
     if (!history || history.length < 2) return (
         <div className="flex items-center justify-center h-full text-xs text-gray-500 font-mono animate-pulse">
-            GATHERING SENSOR FUSION DATA...
+            INITIALIZING FUSION ENGINE...
         </div>
     );
 
     return (
         <div className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
-                    <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} interval="preserveStartEnd" />
-                    <YAxis domain={['auto', 'auto']} tick={{ fill: '#9CA3AF', fontSize: 10 }} />
-                    <Tooltip
-                        contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                        itemStyle={{ fontSize: '12px' }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                {/* CHANGED: Switched to AreaChart for "Stock Market" feel */}
+                <React.Fragment>
+                    <defs>
+                        <linearGradient id="colorFused" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                    <LineChart data={history}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} vertical={false} />
+                        <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} />
+                        <YAxis domain={['auto', 'auto']} tick={{ fill: '#9CA3AF', fontSize: 10 }} orientation="right" />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '4px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                            itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                            labelStyle={{ color: '#9CA3AF', marginBottom: '8px', borderBottom: '1px solid #374151', paddingBottom: '4px' }}
+                        />
+                        <Legend iconType="plainline" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
 
-                    {/* Raw Sensor (Noisy) */}
-                    <Line type="monotone" dataKey="local" stroke="#ef4444" strokeWidth={1} dot={false} name="Raw Sensor (Noisy)" strokeOpacity={0.7} />
+                        {/* Financial Style Lines */}
+                        <Line type="step" dataKey="external" stroke="#60a5fa" strokeWidth={1} dot={false} name="Cloud API (Baseline)" strokeDasharray="4 4" opacity={0.5} />
+                        <Line type="monotone" dataKey="local" stroke="#f87171" strokeWidth={1} dot={false} name="Local Sensor (Raw)" opacity={0.6} />
 
-                    {/* External API (Bias) */}
-                    <Line type="step" dataKey="external" stroke="#3b82f6" strokeWidth={1} dot={false} name="Cloud API (Regional)" strokeDasharray="4 4" />
-
-                    {/* Kalman Fused (Result) */}
-                    <Line type="monotone" dataKey="fused" stroke="#10b981" strokeWidth={3} dot={{ r: 2 }} name="Kalman Estimate" activeDot={{ r: 6 }} />
-                </LineChart>
+                        {/* The "Stock" Line - Thick, Green, Gradient underneath if using Area (using Line for now but styled heavily) */}
+                        <Line type="monotone" dataKey="fused" stroke="#10b981" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }} name="Kalman Projection" />
+                    </LineChart>
+                </React.Fragment>
             </ResponsiveContainer>
         </div>
     );
@@ -694,27 +702,63 @@ const ProView = () => {
                 </Card>
             </div>
 
-            {/* Secondary Metrics */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 opacity-80">
-                <Card>
-                    <StatRow label="Wind Speed" value={weather?.wind_speed} unit="km/h" trend={-1.2} />
-                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                        <Wind size={12} /> {weather?.wind_speed > 15 ? 'Gusty' : 'Calm'}
+            import {Map, Wind, CloudSun, Shield, Fingerprint, Layers, Share2, Search, ArrowRight, Home, Sun, AlertTriangle, BookOpen, Clock, Activity, Move, Save, Settings, Sunrise, Sunset, Eye, Droplets, ThermometerSun} from 'lucide-react';
+            // ...
+            // ...
+            {/* Google-Style Weather Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {/* UV Index */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Sun size={14} /> UV Index
                     </div>
+                    <div className="text-2xl font-bold text-white">{weather?.uv_index || 0}</div>
+                    <div className="text-[10px] text-gray-500">Moderate</div>
                 </Card>
-                <Card>
-                    <StatRow label="AQI (PM2.5)" value={aqi?.pm25} unit="µg/m³" trend={5.2} />
-                    <div className="mt-2 text-xs"><Badge type="warning">MODERATE</Badge></div>
-                </Card>
-                <Card>
-                    <StatRow label="UV Index" value={weather?.uv_index} unit="" />
-                    <div className="w-full bg-gray-800 h-1.5 rounded-full mt-3">
-                        <div className="bg-orange-500 h-full rounded-full" style={{ width: `${(weather?.uv_index / 10) * 100}%` }} />
+
+                {/* Sunrise */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Sunrise size={14} /> Sunrise
                     </div>
+                    <div className="text-2xl font-bold text-white">06:23</div>
+                    <div className="text-[10px] text-gray-500">AM</div>
                 </Card>
-                <Card>
-                    <StatRow label="Pressure" value={1013} unit="hPa" />
-                    <div className="mt-2 text-[10px] text-gray-500">Stable Condition</div>
+
+                {/* Sunset */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Sunset size={14} /> Sunset
+                    </div>
+                    <div className="text-2xl font-bold text-white">18:45</div>
+                    <div className="text-[10px] text-gray-500">PM</div>
+                </Card>
+
+                {/* Humidity */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Droplets size={14} /> Humidity
+                    </div>
+                    <div className="text-2xl font-bold text-white">{weather?.humidity}%</div>
+                    <div className="text-[10px] text-gray-500">Dew Point: 22°</div>
+                </Card>
+
+                {/* Pressure */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Activity size={14} /> Pressure
+                    </div>
+                    <div className="text-2xl font-bold text-white">1013</div>
+                    <div className="text-[10px] text-gray-500">hPa</div>
+                </Card>
+
+                {/* Visibility */}
+                <Card className="flex flex-col justify-between h-24">
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold">
+                        <Eye size={14} /> Visibility
+                    </div>
+                    <div className="text-2xl font-bold text-white">10 km</div>
+                    <div className="text-[10px] text-gray-500">Clear View</div>
                 </Card>
             </div>
 
