@@ -6,14 +6,14 @@
   **Next-Gen IoT Dashboard for Real-Time & Predictive Climate Analysis**
   
   [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](https://github.com/projectc943-prog/Ecosync)
-  [![Live Demo](https://img.shields.io/badge/Live-Demo-orange?style=flat-square&logo=netlify)](https://ecosync-s4-demo.netlify.app)
+  [![Live Demo](https://img.shields.io/badge/Live-Demo-orange?style=flat-square&logo=netlify)](https://ecosync-s4-demo-final-2026.netlify.app)
   [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 </div>
 
 ---
 
 ## 🚀 Live Demo
-**Access the Dashboard Here:** [**https://ecosync-s4-demo.netlify.app**](https://ecosync-s4-demo.netlify.app)  
+**Access the Dashboard Here:** [**https://ecosync-s4-demo-final-2026.netlify.app**](https://ecosync-s4-demo-final-2026.netlify.app)  
 *(Note: Create a new account to experience the Bio-Auth Login flow)*
 
 ---
