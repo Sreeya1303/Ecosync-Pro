@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import API_BASE_URL from '../config';
+import { supabase } from '../config/supabaseClient';
 
-export const useEsp32Stream = () => {
+export const useEsp32Stream = (mode = 'light') => { // 'light' | 'pro'
+    // State
     const [stream, setStream] = useState({
         connected: false,
         lastSeen: null,
         data: null,
-        history: [], // For 15m charts
+        history: [],
         alerts: []
     });
 
@@ -17,125 +18,171 @@ export const useEsp32Stream = () => {
         confidence: 0
     });
 
+    // Refs
     const bufferRef = useRef([]);
     const packetTimestamps = useRef([]);
+    const readerRef = useRef(null);
+    const portRef = useRef(null);
+    const isActiveRef = useRef(true);
 
-    useEffect(() => {
-        let isActive = true;
+    // --- SHARED DATA PROCESSOR ---
+    const processPacket = (rawData) => {
+        if (!isActiveRef.current) return;
 
-        const fetchEsp32Data = async () => {
-            if (!isActive) return;
-
-            try {
-                // Use Production URL
-                const response = await fetch(`${API_BASE_URL}/api/filtered/latest`);
-                // Note: I see main.py has /api/filtered/latest which returns the "filtered" data structure 
-                // formatted almost exactly like the hook expects or close to it.
-                // The previous code called /iot/latest but main.py DOES NOT HAVE /iot/latest.
-                // It has /api/filtered/latest.
-                // Let's check main.py again to be sure what endpoint returns the data.
-                const latestData = await response.json();
-
-                if (!latestData || !latestData.timestamp) {
-                    // Set to disconnected and CLEAR data
-                    setStream(s => ({ ...s, connected: false, data: null }));
-                    return;
-                }
-
-                const now = Date.now();
-                const dataTime = new Date(latestData.timestamp).getTime();
-                const latency = now - dataTime;
-
-                // If data is too old (> 10 seconds), treat as disconnected/blank
-                if (latency > 10000) {
-                    setStream(s => ({ ...s, connected: false, data: null }));
-                    return;
-                }
-
-                const filtered = latestData.filtered || {};
-
-                // Real Data Packet
-                const packet = {
-                    deviceId: "ESP32_MAIN",
-                    ts: dataTime,
-                    timestamp: latestData.timestamp,
-                    temperature: filtered.temperature || 0,
-                    humidity: filtered.humidity || 0,
-                    mq_raw: filtered.mq_smoothed || 0, // Using smoothed as raw for display if raw not avail
-                    mq_index: Math.min(100, Math.max(0, ((filtered.mq_smoothed || 0) - 200) / 6)),
-                    battery: 98,
-                    rssi: -50,
-                    pressure: filtered.pressure || 1013
-                };
-
-                // Update History Buffer
-                bufferRef.current = [...bufferRef.current, packet].slice(-50);
-
-                // Update packet timestamps for health tracking
-                const currentTime = Date.now();
-                packetTimestamps.current = [...packetTimestamps.current, currentTime].filter(
-                    t => currentTime - t < 60000 // Keep last 60 seconds
-                );
-
-                // Calculate health metrics
-                const packetsPerMin = packetTimestamps.current.length;
-                let status = 'CONNECTED';
-                let confidence = 100;
-
-                if (latency > 5000) {
-                    status = 'STALE';
-                    confidence = 50;
-                } else if (latency > 2000) {
-                    confidence = 75;
-                }
-
-                setHealth({
-                    packetsPerMin,
-                    lastPacketTime: new Date(dataTime),
-                    status,
-                    confidence: Math.round(confidence * (packetsPerMin / 60))
-                });
-
-                // --- Real Smart Alerts ---
-                const newAlerts = [];
-                if (packet.temperature > 35) {
-                    newAlerts.push({
-                        metric: 'TEMP',
-                        msg: 'Critical Thermal Spike',
-                        reason: `Sensor reading exceeds 35°C`,
-                        severity: 'high'
-                    });
-                }
-
-                setStream({
-                    connected: true,
-                    lastSeen: now,
-                    data: packet,
-                    history: bufferRef.current,
-                    alerts: newAlerts,
-                    trustScore: latency < 5000 ? 100 : 50
-                });
-
-            } catch (err) {
-                console.error("ESP32 Fetch Error:", err);
-                if (isActive) {
-                    setStream(s => ({ ...s, connected: false, data: null }));
-                    setHealth(h => ({ ...h, status: 'DISCONNECTED', confidence: 0 }));
-                }
-            }
+        const now = Date.now();
+        // Normalize data structure
+        // Handles both Serial JSON and Supabase DB structure
+        const packet = {
+            ts: now,
+            timestamp: rawData.timestamp || new Date().toISOString(),
+            temperature: rawData.temperature ?? 0,
+            humidity: rawData.humidity ?? 0,
+            pressure: rawData.pressure ?? 1013,
+            pm25: rawData.pm25 ?? rawData.pm2_5 ?? 0,
+            pm10: rawData.pm10 ?? 0,
+            isAnomaly: rawData.isAnomaly ?? rawData.is_anomaly ?? false,
+            anomalyScore: rawData.anomalyScore ?? rawData.anomaly_score ?? 0
         };
 
-        // Fetch data every second
-        const interval = setInterval(fetchEsp32Data, 1000);
+        // Update History Buffer (Max 50)
+        bufferRef.current = [...bufferRef.current, packet].slice(-50);
 
-        // Initial fetch
-        fetchEsp32Data();
+        // Update Health
+        packetTimestamps.current = [...packetTimestamps.current, now].filter(t => now - t < 60000);
+
+        // Alerts
+        const newAlerts = [];
+        if (packet.isAnomaly) {
+            newAlerts.push({
+                metric: 'AI',
+                msg: 'Anomaly Detected',
+                reason: `Score: ${packet.anomalyScore.toFixed(1)}`,
+                severity: 'high'
+            });
+        }
+        if (packet.temperature > 40) {
+            newAlerts.push({ metric: 'TEMP', msg: 'High Temp', reason: '> 40°C', severity: 'medium' });
+        }
+
+        // Update State
+        setStream({
+            connected: true,
+            lastSeen: now,
+            data: packet,
+            history: bufferRef.current,
+            alerts: newAlerts
+        });
+
+        setHealth({
+            packetsPerMin: packetTimestamps.current.length,
+            lastPacketTime: new Date(),
+            status: 'CONNECTED',
+            confidence: 100
+        });
+    };
+
+    // --- PRO MODE: Supabase Realtime ---
+    useEffect(() => {
+        isActiveRef.current = true;
+        if (mode !== 'pro') return;
+
+        console.log("Starting PRO Mode (Supabase Stream)...");
+
+        // 1. Fetch Latest
+        const fetchLatest = async () => {
+            const { data } = await supabase
+                .from('sensor_data')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(1)
+                .single();
+            if (data) processPacket(data);
+        };
+        fetchLatest();
+
+        // 2. Subscribe
+        const channel = supabase
+            .channel('sensor-updates')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'sensor_data' },
+                (payload) => processPacket(payload.new)
+            )
+            .subscribe();
 
         return () => {
-            isActive = false;
-            clearInterval(interval);
+            supabase.removeChannel(channel);
         };
-    }, []);
+    }, [mode]);
 
-    return { ...stream, health };
+    // --- LIGHT MODE: Web Serial Handling ---
+    // (Managed via external connect function, but cleanup handled here)
+    useEffect(() => {
+        return () => {
+            // Cleanup Serial on unmount or mode switch
+            if (readerRef.current) readerRef.current.cancel();
+            if (portRef.current) portRef.current.close();
+        };
+    }, [mode]);
+
+    // Serial Connect Function (Exposed to UI)
+    const connectSerial = async () => {
+        if (mode !== 'light') return;
+
+        try {
+            if (!navigator.serial) {
+                alert("Web Serial API not supported in this browser. Use Chrome/Edge.");
+                return;
+            }
+
+            // Request Port
+            const port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 115200 }); // Standard ESP32 baud rate
+            portRef.current = port;
+
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const reader = textDecoder.readable.getReader();
+            readerRef.current = reader;
+
+            console.log("Serial Connected!");
+            setHealth(h => ({ ...h, status: 'CONNECTED' }));
+
+            // Read Loop
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        // Attempt to parse JSON lines
+                        // Note: This is a simple implementation; usually requires buffering lines
+                        try {
+                            const lines = value.split('\n');
+                            for (const line of lines) {
+                                if (line.trim().startsWith('{')) {
+                                    const json = JSON.parse(line);
+                                    processPacket(json);
+                                }
+                            }
+                        } catch (e) {
+                            console.log("Serial Parse Error (Non-JSON data):", value);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Serial Read Error:", error);
+            } finally {
+                reader.releaseLock();
+            }
+
+        } catch (err) {
+            console.error("Serial Connection Failed:", err);
+            alert("Failed to connect to ESP32: " + err.message);
+        }
+    };
+
+    return {
+        ...stream,
+        health,
+        connectSerial: mode === 'light' ? connectSerial : undefined
+    };
 };

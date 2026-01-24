@@ -6,3 +6,6 @@ dist/
 .env
 .DS_Store
 iot_system.db
+
+# Local Netlify folder
+.netlify

@@ -1,21 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Cpu, Globe, Shield, Activity, Radio, Zap, Wind } from 'lucide-react';
+import { ArrowRight, Leaf, Globe, Shield, Activity, Radio, Zap, Wind, Terminal, Lock, Sprout, Network } from 'lucide-react';
 
 const LandingPage = () => {
     const navigate = useNavigate();
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const orb1Ref = useRef(null);
+    const orb2Ref = useRef(null);
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
         const handleMouseMove = (e) => {
             const x = (e.clientX / window.innerWidth - 0.5) * 20;
             const y = (e.clientY / window.innerHeight - 0.5) * 20;
-            setMousePos({ x, y });
+
+            if (orb1Ref.current) {
+                orb1Ref.current.style.transform = `translate(${x * 1.5}px, ${y * 1.5}px)`;
+            }
+            if (orb2Ref.current) {
+                orb2Ref.current.style.transform = `translate(${-x * 1.5}px, ${-y * 1.5}px)`;
+            }
         };
         const handleScroll = () => {
+            // Optimize scroll handler too if needed, but simple boolean toggle is okay
             setScrolled(window.scrollY > 50);
         };
+
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('scroll', handleScroll);
         return () => {
@@ -25,35 +34,36 @@ const LandingPage = () => {
     }, []);
 
     return (
-        <div className="min-h-screen w-full bg-[#020617] font-outfit relative overflow-x-hidden text-white selection:bg-cyan-500/30">
+        <div className="min-h-screen w-full bg-[#022c22] font-outfit relative overflow-x-hidden text-white selection:bg-emerald-500/30">
 
-            {/* --- GLOBAL FX --- */}
-            {/* --- GLOBAL FX - NATURE THEME --- */}
-            <div className="fixed inset-0 bg-gradient-to-br from-green-900 via-emerald-950 to-slate-900 overflow-hidden z-0">
-                {/* Simulated Live 'Wind/Grass' effect via heavy blur and CSS animation */}
-                <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2832&auto=format&fit=crop')] bg-cover bg-center animate-[pulse_10s_ease-in-out_infinite]"></div>
-                <div className="absolute inset-0 bg-black/20"></div>
+            {/* --- GLOBAL FX - BIO GRID --- */}
+            <div className="fixed inset-0 bg-[#022c22] overflow-hidden z-0">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#064e3b_1px,transparent_1px),linear-gradient(to_bottom,#064e3b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
+
+                {/* Organic Glows */}
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[128px] animate-pulse-slow"></div>
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-lime-500/10 rounded-full blur-[128px] animate-pulse-slow delay-1000"></div>
             </div>
 
             {/* --- NAVBAR --- */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#022c22]/80 backdrop-blur-xl border-b border-emerald-500/10 py-4' : 'bg-transparent py-6'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-                            <Cpu className="text-white" size={24} />
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+                            <Leaf className="text-white" size={24} />
                         </div>
                         <div className="leading-tight">
-                            <h2 className="font-black text-2xl tracking-wider text-white">S4</h2>
-                            <p className="text-[10px] text-emerald-400/80 tracking-[0.2em] uppercase">Secure Network</p>
+                            <h2 className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">ECOSYNC</h2>
+                            <p className="text-[10px] text-emerald-500/60 tracking-[0.3em] uppercase font-bold">BIO-DIGITAL MONITOR</p>
                         </div>
                     </div>
                     <div className="hidden md:flex items-center gap-8">
-                        <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-500/20">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            SYSTEM OPERATIONAL
+                            SYSTEM VITAL
                         </div>
                     </div>
                 </div>
@@ -62,39 +72,41 @@ const LandingPage = () => {
             {/* --- HERO SECTION --- */}
             <header className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-20 px-6">
 
-                {/* 3D Background Elements (Parallax) */}
+                {/* Parallax Elements */}
+                {/* Parallax Elements */}
                 <div
-                    className="absolute top-1/4 left-10 md:left-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none"
-                    style={{ transform: `translate(${mousePos.x * 2}px, ${mousePos.y * 2}px)` }}
+                    ref={orb1Ref}
+                    className="absolute top-1/4 left-10 md:left-1/4 w-32 h-32 border border-emerald-500/20 rounded-full pointer-events-none transition-transform duration-100 ease-out"
                 />
                 <div
-                    className="absolute bottom-1/4 right-10 md:right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"
-                    style={{ transform: `translate(${-mousePos.x * 3}px, ${-mousePos.y * 3}px)` }}
+                    ref={orb2Ref}
+                    className="absolute bottom-1/4 right-10 md:right-1/4 w-48 h-48 border border-lime-500/20 rounded-full pointer-events-none transition-transform duration-100 ease-out"
                 />
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto">
 
                     {/* Main Title Group */}
-                    <div className="mb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
+                    <div className="mb-12 animate-in fade-in zoom-in duration-1000">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/50 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-6">
+                            <Sprout size={12} />
+                            <span>v4.2.0 BIOSPHERE // STABLE</span>
+                        </div>
+
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none mb-6">
-                            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                                ENVIRONMENTAL
+                            <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-emerald-200">
+                                SYMBIOTIC
                             </span>
-                            <span className="block text-4xl md:text-6xl lg:text-7xl text-slate-500 mt-2">
-                                MONITORING &
+                            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-lime-400 to-teal-400 animate-gradient-x bg-[length:200%_auto]">
+                                ECO-INTELLIGENCE
                             </span>
-                            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-emerald-400 mt-2">
-                                ALERTING NETWORK
+                            <span className="block text-4xl md:text-6xl text-emerald-500/40 mt-2 font-light tracking-wide">
+                                NETWORK
                             </span>
                         </h1>
 
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-8">
-                            <div className="h-px w-12 bg-white/20 hidden md:block"></div>
-                            <p className="text-xl md:text-2xl text-slate-300 font-light tracking-wide">
-                                Environmental Monitoring and Alerting Network
-                            </p>
-                            <div className="h-px w-12 bg-white/20 hidden md:block"></div>
-                        </div>
+                        <p className="text-xl md:text-2xl text-slate-300 mt-8 font-light max-w-2xl mx-auto leading-relaxed">
+                            Next-gen platform merging <span className="text-emerald-400 font-medium">IoT biosensors</span> with <span className="text-lime-400 font-medium">generative AI</span> for planetary health monitoring.
+                        </p>
                     </div>
 
                     {/* Action Grid */}
@@ -103,26 +115,20 @@ const LandingPage = () => {
                         {/* Access Terminal */}
                         <div
                             onClick={() => navigate('/login')}
-                            className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-white/10 p-1 hover:border-cyan-500/50 transition-all duration-500 hover:shadow-[0_0_50px_-10px_rgba(6,182,212,0.3)]"
+                            className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-[#022c22]/50 border border-white/5 p-1 hover:border-emerald-500/50 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                            <div className="relative h-full bg-[#020617]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
-
-                                {/* Icon Bg */}
-                                <div className="absolute -right-6 -top-6 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
-
-                                <div className="w-14 h-14 bg-cyan-950/50 border border-cyan-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
-                                    <Shield className="text-cyan-400 w-7 h-7" />
+                            <div className="relative h-full bg-[#022c22]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
+                                <div className="w-12 h-12 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-500">
+                                    <Activity className="text-emerald-400 w-6 h-6" />
                                 </div>
-
-                                <h3 className="text-3xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">Access Dashboard</h3>
-                                <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                                    Log in to view real-time environmental data and analytics.
+                                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors tracking-tight">Access Dashboard</h3>
+                                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                                    Visualize live environmental telemetry, air quality indexes, and predictive AI models.
                                 </p>
-
-                                <div className="mt-auto flex items-center gap-3 text-cyan-400 font-bold tracking-widest text-xs uppercase group-hover:translate-x-2 transition-transform">
-                                    Log In <ArrowRight size={16} />
+                                <div className="mt-auto flex items-center gap-3 text-emerald-400 font-bold tracking-widest text-xs uppercase group-hover:text-emerald-300">
+                                    Initialize <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>
                         </div>
@@ -130,26 +136,20 @@ const LandingPage = () => {
                         {/* New Node Request */}
                         <div
                             onClick={() => navigate('/login?mode=signup')}
-                            className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-white/10 p-1 hover:border-emerald-500/50 transition-all duration-500 hover:shadow-[0_0_50px_-10px_rgba(16,185,129,0.3)]"
+                            className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-[#022c22]/50 border border-white/5 p-1 hover:border-lime-500/50 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(132,204,22,0.5)]"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                            <div className="relative h-full bg-[#020617]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
-
-                                {/* Icon Bg */}
-                                <div className="absolute -right-6 -top-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
-
-                                <div className="w-14 h-14 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
-                                    <Radio className="text-emerald-400 w-7 h-7" />
+                            <div className="relative h-full bg-[#022c22]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
+                                <div className="w-12 h-12 bg-lime-950/30 border border-lime-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-lime-500/20 transition-all duration-500">
+                                    <Network className="text-lime-400 w-6 h-6" />
                                 </div>
-
-                                <h3 className="text-3xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">Join Network</h3>
-                                <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                                    Create an account to start contributing local sensor data.
+                                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-lime-400 transition-colors tracking-tight">Deploy Sensor Node</h3>
+                                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                                    Register new hardware endpoints to the global mesh network for localized monitoring.
                                 </p>
-
-                                <div className="mt-auto flex items-center gap-3 text-emerald-400 font-bold tracking-widest text-xs uppercase group-hover:translate-x-2 transition-transform">
-                                    Begin Protocol <ArrowRight size={16} />
+                                <div className="mt-auto flex items-center gap-3 text-lime-400 font-bold tracking-widest text-xs uppercase group-hover:text-lime-300">
+                                    Connect <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>
                         </div>
@@ -160,19 +160,19 @@ const LandingPage = () => {
             </header>
 
             {/* --- FEATURES STRIP --- */}
-            <div className="border-t border-white/5 bg-black/40 backdrop-blur-sm py-16">
+            <div className="border-y border-white/5 bg-[#022c22]/50 backdrop-blur-sm py-16 text-emerald-100">
                 <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                     {[
-                        { icon: Activity, label: "Real-time Analytics", color: "text-blue-400" },
-                        { icon: Zap, label: "Instant Alerts", color: "text-amber-400" },
-                        { icon: Globe, label: "Global Coverage", color: "text-purple-400" },
-                        { icon: Wind, label: "Air Quality Index", color: "text-teal-400" },
+                        { icon: Wind, label: "Air Quality Analysis", color: "text-emerald-400" },
+                        { icon: Activity, label: "Sensor Fusion", color: "text-lime-400" },
+                        { icon: Shield, label: "Eco-Encryption", color: "text-teal-400" },
+                        { icon: Zap, label: "Predictive Models", color: "text-white" },
                     ].map((item, i) => (
                         <div key={i} className="flex flex-col items-center gap-3 group">
-                            <div className={`p-4 rounded-full bg-white/5 border border-white/5 group-hover:bg-white/10 transition-colors ${item.color}`}>
+                            <div className={`p-4 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 group-hover:scale-110 transition-all duration-300 ${item.color}`}>
                                 <item.icon size={24} />
                             </div>
-                            <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">{item.label}</span>
+                            <span className="text-xs font-bold text-emerald-200/60 uppercase tracking-widest group-hover:text-emerald-100 transition-colors">{item.label}</span>
                         </div>
                     ))}
                 </div>
@@ -181,74 +181,72 @@ const LandingPage = () => {
             {/* --- PRICING / COMPARISON CHART --- */}
             <div className="py-24 px-6 max-w-6xl mx-auto">
                 <div className="text-center mb-16">
-                    <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-4">SaaS Tier Comparison</h2>
-                    <p className="text-slate-400 max-w-2xl mx-auto">Choose the intelligence level that fits your operational needs.</p>
+                    <h2 className="text-3xl font-black text-white tracking-widest uppercase mb-4 font-mono">ECO-SYSTEM TIERS</h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">Select your monitoring capability.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
 
                     {/* LITE PLAN */}
-                    <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-8 hover:border-cyan-500/30 transition-all group">
+                    <div className="bg-[#064e3b]/20 border border-white/5 rounded-3xl p-8 hover:border-emerald-500/20 transition-all group backdrop-blur-md">
                         <div className="flex justify-between items-start mb-8">
                             <div>
-                                <h3 className="text-2xl font-black text-cyan-400">LITE CORE</h3>
-                                <p className="text-sm text-slate-500 mt-1">For Public Monitoring</p>
+                                <h3 className="text-2xl font-black text-emerald-100">SEED</h3>
+                                <p className="text-sm text-emerald-500/60 mt-1 font-mono">BASIC_MONITORING</p>
                             </div>
-                            <div className="bg-cyan-500/10 px-3 py-1 rounded text-cyan-400 font-bold text-xs">OPEN ACCESS</div>
+                            <div className="bg-emerald-950 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs uppercase">Free Tier</div>
                         </div>
                         <ul className="space-y-4 mb-8">
                             <li className="flex items-center gap-3 text-slate-300 text-sm">
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Real-time Sensor Data
+                                <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full"></div> Real-time Monitoring
                             </li>
                             <li className="flex items-center gap-3 text-slate-300 text-sm">
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Direct Device View
+                                <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full"></div> Local Access Only
                             </li>
-                            <li className="flex items-center gap-3 text-slate-300 text-sm">
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Basic Alerts
+                            <li className="flex items-center gap-3 text-emerald-900 text-sm line-through opacity-50">
+                                <div className="w-1.5 h-1.5 bg-emerald-900 rounded-full"></div> AI Predictions
                             </li>
-                            <li className="flex items-center gap-3 text-slate-600 text-sm line-through">
-                                <div className="w-1.5 h-1.5 bg-slate-700 rounded-full"></div> AI Predictions
-                            </li>
-                            <li className="flex items-center gap-3 text-slate-600 text-sm line-through">
-                                <div className="w-1.5 h-1.5 bg-slate-700 rounded-full"></div> Sensor Fusion
+                            <li className="flex items-center gap-3 text-emerald-900 text-sm line-through opacity-50">
+                                <div className="w-1.5 h-1.5 bg-emerald-900 rounded-full"></div> Kalman Filtering
                             </li>
                         </ul>
                     </div>
 
                     {/* PRO PLAN */}
-                    <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 border border-emerald-500/30 rounded-3xl p-8 hover:shadow-[0_0_40px_-5px_rgba(16,185,129,0.2)] transition-all transform md:scale-105 z-10">
-                        <div className="absolute -top-4 right-8 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-widest shadow-lg">
+                    <div className="relative bg-gradient-to-b from-emerald-900 to-emerald-950 border border-emerald-500/50 rounded-3xl p-8 shadow-[0_0_50px_-20px_rgba(16,185,129,0.3)] transform md:scale-105 z-10 overflow-hidden">
+
+                        {/* Shimmer Effect */}
+                        <div className="absolute top-0 right-0 p-32 bg-lime-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                        <div className="absolute -top-3 right-8 bg-gradient-to-r from-emerald-500 to-lime-500 text-white text-[10px] font-bold px-3 py-1 rounded-full text-center tracking-widest shadow-lg">
                             RECOMMENDED
                         </div>
-                        <div className="flex justify-between items-start mb-8">
+                        <div className="flex justify-between items-start mb-8 relative z-10">
                             <div>
-                                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">PRO NEXUS</h3>
-                                <p className="text-sm text-slate-400 mt-1">For Research Intelligence</p>
+                                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-lime-400">EVERGREEN</h3>
+                                <p className="text-sm text-emerald-400/60 mt-1 font-mono">FULL_ECO_SUITE</p>
                             </div>
                             <div className="text-right">
-                                <div className="text-emerald-400 font-black text-xl">FREE</div>
-                                <div className="text-[10px] text-slate-500 uppercase">Non-Profit Tier</div>
+                                <div className="text-white font-black text-xl">FREE</div>
+                                <div className="text-[10px] text-emerald-500 uppercase">ACADEMIC LICENSE</div>
                             </div>
                         </div>
-                        <ul className="space-y-4 mb-8">
+                        <ul className="space-y-4 mb-8 relative z-10">
                             <li className="flex items-center gap-3 text-white text-sm font-bold">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Real-time Sensor Data
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_emerald]"></div> Gemini AI Analysis
                             </li>
                             <li className="flex items-center gap-3 text-white text-sm font-bold">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> AI Safety Officer (Gemini)
+                                <div className="w-1.5 h-1.5 bg-lime-400 rounded-full shadow-[0_0_5px_lime]"></div> Sensor Fusion Engine
                             </li>
                             <li className="flex items-center gap-3 text-white text-sm font-bold">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Kalman Filter Fusion
+                                <div className="w-1.5 h-1.5 bg-teal-400 rounded-full shadow-[0_0_5px_teal]"></div> Predictive Modeling
                             </li>
                             <li className="flex items-center gap-3 text-white text-sm font-bold">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> Predictive Analytics
-                            </li>
-                            <li className="flex items-center gap-3 text-white text-sm font-bold">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_5px_#34d399]"></div> SMS / Call Alerts
+                                <div className="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_5px_white]"></div> SMS/Email Alerts
                             </li>
                         </ul>
-                        <button onClick={() => navigate('/login')} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20">
-                            ACCESS RESEARCH TOOLS
+                        <button onClick={() => navigate('/login')} className="relative z-10 w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25 tracking-widest text-sm btn-bio">
+                            GRANT ACCESS
                         </button>
                     </div>
 
@@ -256,8 +254,8 @@ const LandingPage = () => {
             </div>
 
             {/* --- FOOTER --- */}
-            <footer className="py-8 text-center text-slate-600 text-xs tracking-widest uppercase border-t border-white/5">
-                <p>&copy; 2026 EcoSync S4 • Non-Profit Open Source Organization</p>
+            <footer className="py-8 text-center text-emerald-900/50 text-xs tracking-widest uppercase border-t border-white/5 font-mono">
+                <p>ECOSYNC S4 // SECURE BIO-INFRASTRUCTURE // 2026</p>
             </footer>
 
         </div>

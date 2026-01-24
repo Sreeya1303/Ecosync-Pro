@@ -1,20 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-term-bg: #030712; /* Darker Space Black */
-  --color-term-panel: rgba(10, 10, 20, 0.7);
-  --color-term-accent: #00f3ff; /* Neon Cyan */
-  --color-term-critical: #ff0055; /* Neon Red */
-  --color-term-success: #00ff9d; /* Neon Green */
-  --color-term-border: rgba(0, 243, 255, 0.2);
-  --color-term-grid: rgba(0, 243, 255, 0.04);
+  /* BIO-DIGITAL THEME VARIABLES */
+  --color-term-bg: #020617;
+  /* Slate 950 base */
+  --color-term-panel: rgba(6, 78, 59, 0.4);
+  /* Emerald 900/40 */
+  --color-term-accent: #10b981;
+  /* Emerald 500 */
+  --color-term-secondary: #84cc16;
+  /* Lime 500 */
+  --color-term-critical: #ef4444;
+  /* Red 500 */
+  --color-term-success: #10b981;
+  /* Emerald 500 */
+  --color-term-border: rgba(16, 185, 129, 0.3);
+  --color-term-grid: rgba(16, 185, 129, 0.05);
 
-  --shadow-premium: 0 4px 60px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.15);
-  --shadow-glow: 0 0 25px rgba(0, 243, 255, 0.3);
-  
-  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-scanline: scanline 8s linear infinite;
-  --animate-flicker: flicker 0.15s infinite;
+  --shadow-premium: 0 4px 60px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.2);
+  --shadow-glow: 0 0 25px rgba(16, 185, 129, 0.3);
+
+  --animate-pulse-slow: pulse-slow 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* Slower, organic */
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-flow: flow 20s linear infinite;
 }
 
 /* Base Reset */
@@ -24,11 +33,14 @@
 
 body {
   margin: 0;
-  /* Deep Space / Futuristic Earth Background */
-  background-color: #000;
-  background-image: 
-    linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)),
-    url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop');
+  /* Deep Bio-Jungle Background */
+  background-color: #022c22;
+  /* Abstract Green Data/Forest */
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(132, 204, 22, 0.08), transparent 25%),
+    url('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=2548&auto=format&fit=crop');
+  /* Macro Leaf/Abstract Dark Nature */
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -37,118 +49,179 @@ body {
   overflow-x: hidden;
 }
 
-/* Global Grid Overlay */
+/* Bio-Grid Overlay */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
+    linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  /* Wider, breathing grid */
   pointer-events: none;
   z-index: -1;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
 }
 
-/* CRT Scanline Effect (Subtle) */
+/* Organic Particles (CSS Only) */
 body::after {
   content: " ";
   display: block;
   position: fixed;
   inset: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-  z-index: 9999;
-  background-size: 100% 3px, 3px 100%;
+  background:
+    radial-gradient(2px 2px at 20px 30px, #a3e635, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 40px 70px, #10b981, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 50px 160px, #34d399, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 90px 40px, #ffffff, rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: flow 60s linear infinite;
+  opacity: 0.15;
+  z-index: -1;
   pointer-events: none;
-  opacity: 0.4;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Emerald */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.5);
+  background: rgba(2, 44, 34, 0.8);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 243, 255, 0.3);
+  background: rgba(16, 185, 129, 0.3);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-term-accent);
 }
 
-/* Glass Utilities - Performance Optimized */
+/* Bio-Glass Utilities */
 .glass-depth {
-  background: rgba(5, 5, 10, 0.85); /* Darker for better contrast without heavy blur */
-  backdrop-filter: blur(12px) saturate(180%); /* Reduced blur from 20px */
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  background: rgba(2, 44, 34, 0.85);
+  /* Deep Green Tint */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
   will-change: backdrop-filter;
 }
 
 .glass-panel {
-  background: rgba(10, 15, 30, 0.7);
-  backdrop-filter: blur(8px); /* Reduced from 16px */
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 243, 255, 0.15);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background: rgba(6, 78, 59, 0.2);
+  /* Deep Emerald Tint */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(16, 185, 129, 0.05);
   position: relative;
   will-change: transform;
 }
 
-/* Corner Accents for Panels */
-.glass-panel::before, .glass-panel::after {
-    content: '';
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border: 1px solid var(--color-term-accent);
-    transition: all 0.2s ease; /* Faster transition */
-    opacity: 0.7;
+/* Organic Corners */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-top: 2px solid var(--color-term-accent);
+  border-left: 2px solid var(--color-term-accent);
+  border-top-left-radius: 8px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
 }
-.glass-panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.glass-panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .glass-panel:hover {
   border-color: var(--color-term-accent);
-  /* Removed heavy shadow on hover for performance */
-  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); 
-  transform: translateY(-1px);
-  background: rgba(10, 15, 30, 0.8);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+  transform: translateY(-2px);
+  background: rgba(6, 78, 59, 0.3);
+}
+
+.glass-panel:hover::before {
+  top: 5px;
+  left: 5px;
+  opacity: 1;
 }
 
 /* Text Glow */
 .text-glow {
-  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); /* Reduced glow radius */
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
 }
 
-/* Animations - Optimized */
+/* Leaflet Popups - Bio Theme */
+.bio-popup .leaflet-popup-content-wrapper {
+  background: rgba(2, 44, 34, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid #10b981;
+  color: #e2e8f0;
+  border-radius: 12px;
+}
+
+.bio-popup .leaflet-popup-tip {
+  background: #10b981;
+}
+
+/* Animations */
 @keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
 }
 
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
-/* Leaflet Dark Mode Override */
+@keyframes flow {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-200px);
+  }
+}
+
+/* Leaflet Dark Green Mode Override */
 .leaflet-container {
-  background: rgba(0,0,0,0.9) !important;
+  background: #022c22 !important;
   font-family: 'Outfit', sans-serif !important;
 }
+
 .leaflet-bar a {
-  background-color: rgba(30, 41, 59, 1) !important; /* Solid color implies better performace than transparency */
-  color: #00f3ff !important;
-  border-bottom: 1px solid #334155 !important;
+  background-color: rgba(6, 78, 59, 0.9) !important;
+  color: #10b981 !important;
+  border-bottom: 1px solid #065f46 !important;
 }
+
 .leaflet-control-layers {
-    background: rgba(15, 23, 42, 0.95) !important;
-    border: 1px solid #334155 !important;
-    color: white !important;
-    backdrop-filter: blur(4px);
+  background: rgba(6, 78, 59, 0.95) !important;
+  border: 1px solid #065f46 !important;
+  color: white !important;
+  backdrop-filter: blur(4px);
 }

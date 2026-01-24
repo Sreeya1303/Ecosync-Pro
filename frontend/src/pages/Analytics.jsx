@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area, LineChart, Line, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, AlertTriangle, ShieldCheck, Activity, Zap, Leaf } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, ShieldCheck, Activity, Zap, Leaf, Sprout } from 'lucide-react';
 import API_BASE_URL from '../config';
 
 const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => {
@@ -48,9 +48,9 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
         <div className="p-8 space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter">PREDICTIVE ANALYTICS</h1>
-                    <p className="text-cyan-400/60 font-mono text-xs tracking-widest uppercase mt-1">
-                        Advanced Node Ranking // Global Telemetry System
+                    <h1 className="text-4xl font-black text-white tracking-tighter">PREDICTIVE BIOMETRICS</h1>
+                    <p className="text-emerald-400/60 font-mono text-xs tracking-widest uppercase mt-1">
+                        Advanced Node Ranking // Global Eco System
                     </p>
                 </div>
                 <div className="flex items-center gap-3 bg-emerald-950/30 border border-emerald-500/20 p-3 rounded-2xl backdrop-blur-xl">
@@ -66,7 +66,7 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                     <div className="glass-panel p-6 border border-emerald-500/20 rounded-[2rem] bg-emerald-950/20 relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
                             <Leaf size={20} className="text-emerald-400" />
-                            <h3 className="text-lg font-bold text-emerald-100">Predictive Modeling</h3>
+                            <h3 className="text-lg font-bold text-emerald-100">Predictive Growth</h3>
                         </div>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -82,28 +82,28 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                                     <YAxis stroke="#34d399" fontSize={10} />
                                     <Tooltip contentStyle={{ backgroundColor: '#022c22', borderColor: '#059669', color: '#fff' }} />
                                     <Area type="monotone" dataKey="temperature" stroke="#10b981" fill="url(#colorTemp)" />
-                                    <Area type="monotone" dataKey="predictedTemp" stroke="#f472b6" strokeDasharray="5 5" fill="none" />
+                                    <Area type="monotone" dataKey="predictedTemp" stroke="#84cc16" strokeDasharray="5 5" fill="none" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Kalman Filter Graph */}
-                    <div className="glass-panel p-6 border border-purple-500/20 rounded-[2rem] bg-purple-950/20 relative overflow-hidden">
+                    <div className="glass-panel p-6 border border-lime-500/20 rounded-[2rem] bg-lime-950/20 relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
-                            <Zap size={20} className="text-purple-400" />
-                            <h3 className="text-lg font-bold text-purple-100">Kalman Noise Reduction</h3>
+                            <Zap size={20} className="text-lime-400" />
+                            <h3 className="text-lg font-bold text-lime-100">Kalman Noise Reduction</h3>
                         </div>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={sensorData || []}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#3b0764" />
-                                    <XAxis dataKey="timestamp" stroke="#a855f7" tick={false} />
-                                    <YAxis stroke="#a855f7" fontSize={10} domain={['auto', 'auto']} />
-                                    <Tooltip contentStyle={{ backgroundColor: '#1e0a45', borderColor: '#7e22ce', color: '#fff' }} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2e05" />
+                                    <XAxis dataKey="timestamp" stroke="#84cc16" tick={false} />
+                                    <YAxis stroke="#84cc16" fontSize={10} domain={['auto', 'auto']} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f1f02', borderColor: '#365314', color: '#fff' }} />
                                     <Legend />
                                     <Line type="monotone" dataKey="temperature" name="Raw" stroke="#64748b" strokeWidth={1} dot={false} strokeOpacity={0.5} />
-                                    <Line type="basis" dataKey="temperature" name="Filtered" stroke="#d8b4fe" strokeWidth={2} dot={false} />
+                                    <Line type="basis" dataKey="temperature" name="Filtered" stroke="#a3e635" strokeWidth={2} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -121,8 +121,8 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                             <TrendingUp className="text-red-400 w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">THERMAL PEAKS</h2>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Top 10 Highest Recording Nodes</p>
+                            <h2 className="text-xl font-bold text-white tracking-tight">HEAT STRESS</h2>
+                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Top 10 High Temp Zones</p>
                         </div>
                     </div>
 
@@ -162,16 +162,16 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                 </div>
 
                 {/* Low Temperature Rankings */}
-                <div className="glass-panel p-8 rounded-[2rem] border border-cyan-500/10 space-y-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-cyan-500/10 transition-colors"></div>
+                <div className="glass-panel p-8 rounded-[2rem] border border-teal-500/10 space-y-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-teal-500/10 transition-colors"></div>
 
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center border border-cyan-500/20">
-                            <TrendingDown className="text-cyan-400 w-6 h-6" />
+                        <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center border border-teal-500/20">
+                            <TrendingDown className="text-teal-400 w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">CRYOGENIC LEVELS</h2>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Top 10 Lowest Recording Nodes</p>
+                            <h2 className="text-xl font-bold text-white tracking-tight">ECO-STASIS</h2>
+                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Top 10 Low Temp Zones</p>
                         </div>
                     </div>
 
@@ -183,11 +183,11 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                                 <YAxis stroke="#ffffff20" fontSize={10} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px', fontSize: '10px' }}
-                                    itemStyle={{ color: '#22d3ee' }}
+                                    itemStyle={{ color: '#2dd4bf' }}
                                 />
                                 <Bar dataKey="temperature" radius={[4, 4, 0, 0]}>
                                     {top10Low.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={`rgba(6, 182, 212, ${0.4 + index * 0.08})`} />
+                                        <Cell key={`cell-${index}`} fill={`rgba(45, 212, 191, ${0.4 + index * 0.08})`} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -198,12 +198,12 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
                         {top10Low.map((item, i) => (
                             <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-bold text-cyan-500/40 font-mono">#{i + 1}</span>
+                                    <span className="text-[10px] font-bold text-teal-500/40 font-mono">#{i + 1}</span>
                                     <span className="text-sm font-medium text-slate-300">Node: {item.device_id.slice(0, 8)}...</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-lg font-bold text-white">{item.temperature}°C</span>
-                                    <Activity className="text-cyan-500/40 w-4 h-4" />
+                                    <Activity className="text-teal-500/40 w-4 h-4" />
                                 </div>
                             </div>
                         ))}
@@ -214,12 +214,12 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
             {/* Critical Metrics Status */}
             <div className="glass-panel p-8 rounded-[2.5rem] border border-white/5 relative bg-gradient-to-b from-white/[0.02] to-transparent">
                 <div className="flex items-center gap-4 mb-8">
-                    <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/20">
-                        <AlertTriangle className="text-purple-400 w-5 h-5" />
+                    <div className="w-10 h-10 bg-lime-500/10 rounded-xl flex items-center justify-center border border-lime-500/20">
+                        <AlertTriangle className="text-lime-400 w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white tracking-tight">ANOMALY LOG</h2>
-                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Real-time Dangerous Level Detection</p>
+                        <h2 className="text-xl font-bold text-white tracking-tight">ECO-SYSTEM ANOMALIES</h2>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Real-time Bio-Hazard Detection</p>
                     </div>
                 </div>
 

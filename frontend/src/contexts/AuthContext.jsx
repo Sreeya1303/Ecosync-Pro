@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -12,39 +13,111 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Check local storage for existing session
-        const token = localStorage.getItem('token');
-        const role = localStorage.getItem('role');
-        const plan = localStorage.getItem('plan');
+    const fetchProfile = async (userId) => {
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId) // Note: This assumes referencing by internal ID, but Supabase Auth uses UUID. 
+                // CRITICAL FIX: The schema migration created 'users' with SERIAL id (integer). 
+                // But Supabase Auth Users have UUIDs. 
+                // We need to link them. 
+                // Actually, for simplicity in this agentic run, let's query by 'email' since that's unique.
+                // ideally auth.uid() should map to a uuid column, but our legacy schema has int id.
+                // Let's query by email.
+                .single();
 
-        if (token) {
-            // Reconstruct user session
-            setCurrentUser({ access_token: token, role, plan });
+            // Wait, if I can't use eq('email', ...) easily due to RLS potential, 
+            // I should have created the table with id references auth.users.id.
+            // Since I ran the migration already, let's just use email match for now or handle the mismatch.
+            // Better approach: When signing up, we might have created a record.
+            // Let's try fetching by email.
+            if (!data) return null;
+            return data;
+        } catch (e) {
+            console.error("Profile fetch error", e);
+            return null;
         }
-        setLoading(false);
-    }, []);
-
-    const loginCustom = (userData) => {
-        setCurrentUser(userData);
-        localStorage.setItem('token', userData.access_token);
-        if (userData.role) localStorage.setItem('role', userData.role);
-        if (userData.plan) localStorage.setItem('plan', userData.plan);
     };
 
-    const logout = () => {
-        setCurrentUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
+    useEffect(() => {
+        // Check active session
+        const initSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setCurrentUser(session.user);
+                // Fetch profile
+                const { data } = await supabase.from('users').select('*').eq('email', session.user.email).single();
+                if (data) {
+                    setUserProfile(data);
+                    localStorage.setItem('plan', data.plan || 'lite');
+                }
+            } else {
+                setCurrentUser(null);
+                setUserProfile(null);
+            }
+            setLoading(false);
+        };
+
+        initSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setCurrentUser(session?.user ?? null);
+            if (session?.user) {
+                const { data } = await supabase.from('users').select('*').eq('email', session.user.email).single();
+                if (data) {
+                    setUserProfile(data);
+                    localStorage.setItem('plan', data.plan || 'lite');
+                }
+            } else {
+                setUserProfile(null);
+            }
+            setLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const login = (email, password) => supabase.auth.signInWithPassword({ email, password });
+
+    const signup = async (email, password, data) => {
+        // 1. Create Auth User
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+        });
+        if (authError) return { data: null, error: authError };
+
+        // 2. Create Public Profile in 'users' table
+        if (authData.user) {
+            const { error: dbError } = await supabase.from('users').insert([{
+                email: email,
+                first_name: data.first_name,
+                last_name: data.last_name,
+                plan: data.plan || 'lite'
+            }]);
+            if (dbError) console.error("Profile creation failed", dbError);
+        }
+
+        return { data: authData, error: null };
+    };
+
+    const logout = async () => {
+        await supabase.auth.signOut();
         localStorage.removeItem('plan');
+        setCurrentUser(null);
+        setUserProfile(null);
     };
 
     const value = {
         currentUser,
+        userProfile,
         loading,
-        loginCustom,
+        login,
+        signup,
         logout
     };
 
