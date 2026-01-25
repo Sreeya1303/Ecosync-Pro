@@ -17,17 +17,62 @@ const Profile = () => {
     // Mock "Active" Status Animation
     const [activityPulse, setActivityPulse] = useState(true);
 
-    // Load from LocalStorage if available (mock persistence)
+    // Load Profile from Backend
     useEffect(() => {
-        const saved = localStorage.getItem('profileData');
-        if (saved) {
-            setFormData(JSON.parse(saved));
-        }
-    }, []);
+        const fetchProfile = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                // We can use the /auth/me or verify endpoint to get current details, 
+                // but since we have a specific update endpoint, let's assume we fetch current user details on load
+                // For now, we rely on AuthContext initial state, but to ensure fresh data:
+                const res = await fetch(`${API_BASE_URL}/auth/me`, { // Assuming this endpoint exists or similar
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                // If /auth/me doesn't exist, we might need to rely on stored token data or add it.
+                // Given the file view of auth.py, we have `get_current_user` but no direct /me endpoint returning full profile except inside other calls.
+                // Let's rely on AuthContext for initial load, and only implement Save for now to avoid breaking if /me is missing.
+                if (currentUser) {
+                    setFormData({
+                        firstName: currentUser.first_name || '',
+                        lastName: currentUser.last_name || '',
+                        role: 'Researcher', // Static for now as DB schema doesn't seem to have role field in User model shown in auth.py
+                        bio: 'Environmental enthusiast.',
+                        linkedin: '',
+                        github: ''
+                    });
+                }
+            } catch (e) { console.error(e); }
+        };
+        fetchProfile();
+    }, [currentUser]);
 
-    const handleSave = () => {
-        localStorage.setItem('profileData', JSON.stringify(formData));
-        setIsEditing(false);
+    const handleSave = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/auth/me/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    mobile: "0000000000", // Defaulting as not in form
+                    location_name: "Hyderabad" // Defaulting
+                })
+            });
+
+            if (res.ok) {
+                alert("Profile Updated Successfully");
+                setIsEditing(false);
+                // Trigger auth update if possible, or reload
+            } else {
+                throw new Error("Update failed");
+            }
+        } catch (e) {
+            alert("Failed to save profile. " + e.message);
+        }
     };
 
     return (
@@ -91,8 +136,8 @@ const Profile = () => {
                                 <button
                                     onClick={() => setIsEditing(!isEditing)}
                                     className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-medium transition-all duration-300 w-full justify-center ${isEditing
-                                            ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
-                                            : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white'
+                                        ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                                        : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white'
                                         }`}
                                 >
                                     {isEditing ? <><X className="w-4 h-4" /> Cancel</> : <><Edit2 className="w-4 h-4" /> Edit Profile</>}

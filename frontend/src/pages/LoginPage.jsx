@@ -277,8 +277,8 @@ const LoginPage = () => {
 
                     <div className="text-center mb-6 relative z-10">
                         <h1 className="text-3xl font-black text-white tracking-tight mb-1 drop-shadow-md font-mono">
-                            {authStage === 'login' && 'STATION LOGIN'}
-                            {authStage === 'signup_email' && 'NEW SENSOR NODE'}
+                            {authStage === 'login' && 'ECO LOGIN'}
+                            {authStage === 'signup_email' && 'REGISTER NEW NODE'}
                             {authStage === 'signup_password' && 'SECURE UPLINK'}
                         </h1>
                         <p className="text-emerald-400/80 text-[11px] font-bold tracking-[0.3em] uppercase font-mono">

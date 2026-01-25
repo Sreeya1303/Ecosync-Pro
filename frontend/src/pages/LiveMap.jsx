@@ -81,6 +81,20 @@ const DataModal = ({ pointData, loading, onClose, onSave }) => {
                                 </div>
                                 <p className="text-cyan-400 font-mono text-sm animate-pulse">SCANNING SATELLITE DATA...</p>
                             </div>
+                        ) : pointData?.error ? (
+                            <div className="text-center py-6">
+                                <div className="inline-block p-4 rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                                    <Activity size={32} className="text-red-500" />
+                                </div>
+                                <h3 className="text-white font-bold text-lg mb-2">SIGNAL LOST</h3>
+                                <p className="text-gray-400 text-sm mb-6">{pointData.error}</p>
+                                <button
+                                    onClick={onClose}
+                                    className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-mono text-xs uppercase tracking-widest transition-all"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
                         ) : (
                             <div className="space-y-6">
                                 {/* Coordinates */}
@@ -188,10 +202,22 @@ const LiveMap = () => {
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/map/point?lat=${latlng.lat}&lon=${latlng.lng}`);
+            if (!res.ok) {
+                // If API returns non-200, assume logic error or standard failure
+                // We still want to show the modal with an error state
+                throw new Error(`Data Stream Failed: ${res.status}`);
+            }
             const data = await res.json();
             if (isMounted.current) setPointData(data);
         } catch (e) {
-            console.error(e);
+            console.error("Map Point Error:", e);
+            if (isMounted.current) {
+                // Set minimal point data with error flag to keep modal open
+                setPointData({
+                    location: { lat: latlng.lat, lon: latlng.lng },
+                    error: "Unable to retrieve environmental telemetry. Satellite link unstable."
+                });
+            }
         } finally {
             if (isMounted.current) setLoading(false);
         }

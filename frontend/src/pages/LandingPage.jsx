@@ -57,6 +57,15 @@ const LandingPage = () => {
                             <p className="text-[10px] text-emerald-500/60 tracking-[0.3em] uppercase font-bold">BIO-DIGITAL MONITOR</p>
                         </div>
                     </div>
+
+                    {/* Links Section */}
+                    <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest text-emerald-100/60 uppercase">
+                        <a href="/" className="hover:text-emerald-400 transition-colors">Home</a>
+                        <a href="#" className="hover:text-emerald-400 transition-colors">About</a>
+                        <a href="#" className="hover:text-emerald-400 transition-colors">Contact</a>
+                        <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Github</a>
+                    </div>
+
                     <div className="hidden md:flex items-center gap-8">
                         <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-500/20">
                             <span className="relative flex h-2 w-2">
@@ -72,7 +81,6 @@ const LandingPage = () => {
             {/* --- HERO SECTION --- */}
             <header className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-20 px-6">
 
-                {/* Parallax Elements */}
                 {/* Parallax Elements */}
                 <div
                     ref={orb1Ref}
@@ -144,12 +152,12 @@ const LandingPage = () => {
                                 <div className="w-12 h-12 bg-lime-950/30 border border-lime-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-lime-500/20 transition-all duration-500">
                                     <Network className="text-lime-400 w-6 h-6" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-lime-400 transition-colors tracking-tight">Deploy Sensor Node</h3>
+                                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-lime-400 transition-colors tracking-tight">Register New Node</h3>
                                 <p className="text-slate-400 text-sm mb-6 leading-relaxed">
                                     Register new hardware endpoints to the global mesh network for localized monitoring.
                                 </p>
                                 <div className="mt-auto flex items-center gap-3 text-lime-400 font-bold tracking-widest text-xs uppercase group-hover:text-lime-300">
-                                    Connect <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                    Register <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>
                         </div>

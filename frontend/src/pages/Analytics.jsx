@@ -10,22 +10,19 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_BASE_URL}/data?limit=100`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                // Use new /api/data endpoint
+                const res = await fetch(`${API_BASE_URL}/api/data?limit=50`);
+                if (!res.ok) throw new Error("Analytics Fetch Failed");
+
                 const jsonData = await res.json();
 
-                // Group by device and get latest temp for each
-                const deviceMap = {};
-                jsonData.forEach(reading => {
-                    if (!deviceMap[reading.device_id] || new Date(reading.timestamp) > new Date(deviceMap[reading.device_id].timestamp)) {
-                        deviceMap[reading.device_id] = reading;
-                    }
-                });
+                // Process data: ensure timestamp is valid date object/string for charts
+                const processed = jsonData.map(d => ({
+                    ...d,
+                    timestamp: new Date(d.timestamp).toLocaleString()
+                })).reverse(); // Recharts often prefers chronological L->R
 
-                const latestReadings = Object.values(deviceMap);
-                setData(latestReadings);
+                setData(processed);
                 setLoading(false);
             } catch (e) {
                 console.error("Failed to fetch analytics", e);

@@ -31,49 +31,48 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="h-screen w-20 flex flex-col items-center py-8 glass-depth border-r border-white/10 relative z-50">
+        <div className="fixed left-4 top-4 bottom-4 w-20 flex flex-col items-center py-8 glass-panel rounded-[2.5rem] border border-white/10 z-50 transition-all hover:w-24 group-hover:duration-300">
             {/* Brand Icon */}
-            <div className="mb-12 p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20 flex flex-col items-center justify-center">
+            <div className="mb-12 p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-600 shadow-xl shadow-emerald-500/20 flex flex-col items-center justify-center transform hover:scale-110 transition-transform cursor-pointer" onClick={() => navigate('/')}>
                 <Zap className="w-6 h-6 text-white" fill="white" />
-                <span className="text-[10px] font-black text-white mt-1">ECOSYNC</span>
             </div>
+            {/* Vertical Text Brand - Hidden on small, shown on hover/large maybe? Simplified to just Icon for floating look */}
 
             {/* Navigation */}
-            <nav className="flex-1 w-full flex flex-col items-center gap-6">
+            <nav className="flex-1 w-full flex flex-col items-center gap-8">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         className={({ isActive }) => `
-              p-3 rounded-xl transition-all duration-300 group relative
+              p-3 rounded-2xl transition-all duration-300 relative group/icon
               ${isActive
-                                ? 'bg-white/10 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                                ? 'bg-white/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] scale-110'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5 hover:scale-105'}
             `}
                     >
                         <item.icon className="w-6 h-6" strokeWidth={1.5} />
 
-                        {/* Tooltip */}
-                        <span className="absolute left-16 px-2 py-1 bg-slate-900 text-cyan-400 text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-cyan-500/20 pointer-events-none">
+                        {/* Floating Tooltip */}
+                        <div className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-900/90 backdrop-blur text-white text-xs font-bold rounded-xl opacity-0 group-hover/icon:opacity-100 transition-all whitespace-nowrap border border-white/10 pointer-events-none translate-x-2 group-hover/icon:translate-x-0 shadow-xl">
                             {item.label}
-                        </span>
+                        </div>
                     </NavLink>
                 ))}
             </nav>
 
             {/* Logout / Status */}
-            <div className="mt-auto flex flex-col items-center gap-4">
+            <div className="mt-auto flex flex-col items-center gap-6">
                 <button
                     onClick={handleLogout}
-                    className="text-red-400 hover:text-red-300 transition-colors p-2 group relative"
-                    title="Logout"
+                    className="text-red-400 hover:text-red-300 transition-colors p-3 hover:bg-red-500/10 rounded-xl relative group/logout"
                 >
                     <LogOut size={20} />
-                    <span className="absolute left-16 px-2 py-1 bg-slate-900 text-red-400 text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-red-500/20 pointer-events-none">
-                        Logout
-                    </span>
+                    <div className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-2 bg-red-900/90 text-red-200 text-xs font-bold rounded-xl opacity-0 group-hover/logout:opacity-100 transition-all whitespace-nowrap border border-red-500/20 pointer-events-none translate-x-2 group-hover/logout:translate-x-0">
+                        Disconnect
+                    </div>
                 </button>
-                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] animate-pulse"></div>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] animate-pulse"></div>
             </div>
         </div>
     );

@@ -553,35 +553,63 @@ const ProView = () => {
                             {searchQuery.city || 'GLOBAL'} ZONE • PUBLIC API
                         </span>
 
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                <Search size={12} className="text-gray-500" />
-                            </div>
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                onFocus={() => inputValue.length > 2 && setShowSuggestions(true)}
-                                placeholder="Search City..."
-                                className="pl-7 bg-gray-800 border border-gray-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors w-48"
-                            />
+                        <div className="relative flex items-center gap-2">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                    <Search size={12} className="text-gray-500" />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={handleInputChange}
+                                    onKeyDown={handleKeyDown}
+                                    onFocus={() => inputValue.length > 2 && setShowSuggestions(true)}
+                                    placeholder="Search City..."
+                                    className="pl-7 bg-gray-800 border border-gray-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors w-48"
+                                />
 
-                            {/* Dropdown Results */}
-                            {showSuggestions && suggestions.length > 0 && (
-                                <ul className="absolute left-0 top-full mt-1 w-full bg-[#1e2329] border border-gray-700 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
-                                    {suggestions.map((s) => (
-                                        <li
-                                            key={s.id}
-                                            onClick={() => handleSelectCity(s)}
-                                            className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-xs text-gray-200 border-b border-gray-800 last:border-0 flex flex-col"
-                                        >
-                                            <span className="font-bold">{s.name}</span>
-                                            <span className="text-[10px] text-gray-500">{s.admin1}, {s.country}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
+                                {/* Dropdown Results */}
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <ul className="absolute left-0 top-full mt-1 w-full bg-[#1e2329] border border-gray-700 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
+                                        {suggestions.map((s) => (
+                                            <li
+                                                key={s.id}
+                                                onClick={() => handleSelectCity(s)}
+                                                className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-xs text-gray-200 border-b border-gray-800 last:border-0 flex flex-col"
+                                            >
+                                                <span className="font-bold">{s.name}</span>
+                                                <span className="text-[10px] text-gray-500">{s.admin1}, {s.country}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            {/* [NEW] Current Location Button */}
+                            <button
+                                onClick={() => {
+                                    if (navigator.geolocation) {
+                                        navigator.geolocation.getCurrentPosition(
+                                            (pos) => {
+                                                const { latitude, longitude } = pos.coords;
+                                                setSearchQuery({ lat: latitude, lon: longitude, city: 'Current Location' });
+                                                setInputValue('Current Location');
+                                                setFusionHistory([]);
+                                            },
+                                            (err) => {
+                                                alert("Location Access Denied or Unavailable.");
+                                                console.error(err);
+                                            }
+                                        );
+                                    } else {
+                                        alert("Geolocation is not supported by this browser.");
+                                    }
+                                }}
+                                className="p-1.5 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-md hover:bg-indigo-600 hover:text-white transition-colors"
+                                title="Use Current Location"
+                            >
+                                <Move size={14} />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -645,9 +673,7 @@ const ProView = () => {
                 </Card>
             </div>
 
-            import {Map, Wind, CloudSun, Shield, Fingerprint, Layers, Share2, Search, ArrowRight, Home, Sun, AlertTriangle, BookOpen, Clock, Activity, Move, Save, Settings, Sunrise, Sunset, Eye, Droplets, ThermometerSun} from 'lucide-react';
-            // ...
-            // ...
+
             {/* Google-Style Weather Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {/* UV Index */}

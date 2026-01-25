@@ -252,6 +252,14 @@ async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
         logger.error(f"IoT Data Error: {e}")
         return {"status": "error", "detail": str(e)}
 
+@app.get("/api/data", tags=["Analytics"])
+def get_historical_data(limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Returns historical sensor data for analytics visualization.
+    """
+    data = db.query(models.SensorData).order_by(models.SensorData.timestamp.desc()).limit(limit).all()
+    return data
+
 @app.get("/api/filtered/latest", tags=["IoT"])
 async def get_filtered_iot_data(db: Session = Depends(get_db)):
     """Returns latest Kalman-filtered data with AQI and health recommendations."""

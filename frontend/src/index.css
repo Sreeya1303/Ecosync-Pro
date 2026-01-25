@@ -39,7 +39,7 @@ body {
   background-image:
     radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(132, 204, 22, 0.08), transparent 25%),
-    url('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=2548&auto=format&fit=crop');
+    url('/Users/dhanush/.gemini/antigravity/brain/989be157-fc4f-4ba1-9e52-3adf1ddc45e4/eco_greenery_weather_background_1769336694908.png');
   /* Macro Leaf/Abstract Dark Nature */
   background-size: cover;
   background-position: center;
@@ -62,25 +62,6 @@ body::before {
   pointer-events: none;
   z-index: -1;
   mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-}
-
-/* Organic Particles (CSS Only) */
-body::after {
-  content: " ";
-  display: block;
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(2px 2px at 20px 30px, #a3e635, rgba(0, 0, 0, 0)),
-    radial-gradient(2px 2px at 40px 70px, #10b981, rgba(0, 0, 0, 0)),
-    radial-gradient(2px 2px at 50px 160px, #34d399, rgba(0, 0, 0, 0)),
-    radial-gradient(2px 2px at 90px 40px, #ffffff, rgba(0, 0, 0, 0));
-  background-repeat: repeat;
-  background-size: 200px 200px;
-  animation: flow 60s linear infinite;
-  opacity: 0.15;
-  z-index: -1;
-  pointer-events: none;
 }
 
 /* Custom Scrollbar - Emerald */
