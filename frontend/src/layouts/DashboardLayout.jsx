@@ -8,13 +8,24 @@ import { THEME } from '../components/dashboard/shared/Common';
 const DashboardShell = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Robust State Initialization
+    // Robust State Initialization with Safe Formatting
     const [mode, setMode] = useState(() => {
-        const urlMode = searchParams.get('mode');
-        const storedMode = localStorage.getItem('dashboardMode');
-        const planMode = localStorage.getItem('plan'); // Get plan from login
-        // Priority: URL -> Stored Mode -> Login Plan -> Lite
-        return (urlMode === 'lite' || urlMode === 'pro') ? urlMode : (storedMode || planMode || 'lite');
+        try {
+            const urlMode = searchParams.get('mode');
+            const storedMode = localStorage.getItem('dashboardMode');
+
+            // Validate Logic: Must be strictly 'lite' or 'pro'
+            const isValid = (m) => m === 'lite' || m === 'pro';
+
+            if (isValid(urlMode)) return urlMode;
+            if (isValid(storedMode)) return storedMode;
+
+            // Fallback
+            return 'lite';
+        } catch (e) {
+            console.warn("Storage Error, defaulting to Lite", e);
+            return 'lite';
+        }
     });
 
     // Sync State <-> URL <-> Storage

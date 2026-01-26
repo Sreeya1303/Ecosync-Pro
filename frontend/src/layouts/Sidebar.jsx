@@ -7,7 +7,8 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const [searchParams] = useSearchParams();
-    const mode = searchParams.get('mode') || localStorage.getItem('dashboardMode') || 'lite';
+    const storedMode = localStorage.getItem('dashboardMode');
+    const mode = searchParams.get('mode') || ((storedMode === 'lite' || storedMode === 'pro') ? storedMode : 'lite');
     const isPro = mode === 'pro';
     const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
