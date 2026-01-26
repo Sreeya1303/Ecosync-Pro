@@ -46,14 +46,17 @@ const Sidebar = () => {
             <div className={`
                 fixed top-0 bottom-0 left-0 z-50
                 flex flex-col items-center py-6 
-                bg-[#020617]/90 backdrop-blur-md border-r border-white/5
-                transition-all duration-300 ease-out
-                ${isMobileOpen ? 'w-[80px] translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-[72px] hover:lg:w-[88px]'}
+                bg-[#020617]/40 backdrop-blur-2xl border-r border-emerald-500/10
+                transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+                ${isMobileOpen ? 'w-[80px] translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-[80px] hover:lg:w-[96px]'}
             `}>
 
                 {/* Brand Logo */}
-                <div className="mb-10 p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-600 shadow-lg shadow-emerald-500/20 cursor-pointer" onClick={() => navigate('/')}>
-                    <Zap className="w-6 h-6 text-white" />
+                <div
+                    className="mb-10 p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-600 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer hover:scale-110 active:scale-95 transition-all duration-300"
+                    onClick={() => navigate('/')}
+                >
+                    <Zap className="w-6 h-6 text-white fill-current" />
                 </div>
 
                 {/* Navigation Items */}
@@ -64,16 +67,22 @@ const Sidebar = () => {
                             to={item.path}
                             onClick={() => setIsMobileOpen(false)} // Close on click (mobile)
                             className={({ isActive }) => `
-                                relative group p-3 rounded-xl transition-all duration-300
+                                relative group p-4 rounded-2xl transition-all duration-300
                                 ${isActive
-                                    ? 'bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
                                     : 'text-slate-500 hover:text-white hover:bg-white/5'}
                             `}
                         >
-                            <item.icon className="w-6 h-6" strokeWidth={1.5} />
+                            <item.icon className={`w-6 h-6 transition-transform duration-300 group-hover:scale-110`} strokeWidth={1.5} />
+
+                            {/* Active Indicator Bar */}
+                            <div className={`
+                                absolute left-0 w-1 h-6 bg-emerald-500 rounded-r-full transition-all duration-300
+                                group-[.active]:opacity-100 opacity-0 -translate-x-1 group-[.active]:translate-x-0
+                            `} />
 
                             {/* Floating Tooltip (Desktop Only) */}
-                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-slate-800 text-slate-200 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden lg:block border border-white/10">
+                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-6 px-3 py-1.5 bg-slate-900 border border-emerald-500/20 text-emerald-100 text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none hidden lg:block shadow-xl">
                                 {item.label}
                             </div>
                         </NavLink>

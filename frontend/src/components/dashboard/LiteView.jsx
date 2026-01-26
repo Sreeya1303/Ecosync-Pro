@@ -75,7 +75,7 @@ const LiteView = () => {
             <div className="flex flex-wrap justify-between items-end gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300">
-                        SYMBIOTIC ECO-INTELLIGENCE NETWORK <span className="text-slate-500 text-lg">|</span> LITE
+                        CLOUD-BASED IOT ENVIRONMENTAL MONITORING <span className="text-slate-500 text-lg">|</span> LITE
                     </h2>
                     <p className="text-slate-400 text-xs font-mono mt-1">
                         DEVICE ID: <span className="text-slate-200">{data.deviceId}</span>
@@ -216,65 +216,30 @@ const LiteView = () => {
             <div className="glass-panel p-6 mt-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Wifi size={18} className="text-cyan-400" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Device Connection Setup</h3>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">LIVE SERIAL OUTPUT</h3>
                 </div>
-                <ConnectionConfig />
+                <SerialMonitor data={data} />
             </div>
         </div>
     );
 };
 
-const ConnectionConfig = () => {
-    const [ip, setIp] = React.useState('');
-    const [ssid, setSsid] = React.useState('');
-    const [status, setStatus] = React.useState('IDLE'); // IDLE, SAVING, SAVED, ERROR
-
-    const handleSave = async () => {
-        setStatus('SAVING');
-        try {
-            // Mock API call - In real scenario this would POST to /api/config/target
-            await new Promise(r => setTimeout(r, 1000));
-            setStatus('SAVED');
-            setTimeout(() => setStatus('IDLE'), 3000);
-        } catch (e) {
-            setStatus('ERROR');
-        }
-    };
+const SerialMonitor = ({ data }) => {
+    // Generate simulated logs based on live data
+    const logs = data ? [
+        `[${new Date().toLocaleTimeString()}] HTTP GET /api/v1/telemetry 200 OK`,
+        `[${new Date().toLocaleTimeString()}] SENSOR_READ: Temp=${data.temperature}°C Hum=${data.humidity}%`,
+        `[${new Date().toLocaleTimeString()}] SENSOR_READ: Gas_Analog=${data.mq_ppm > 50 ? 'HIGH' : 'NORMAL'}`,
+        `[${new Date().toLocaleTimeString()}] BLYNK_SYNC: Virtual Write V0, V1, V2 Success`,
+        `[${new Date().toLocaleTimeString()}] WIFI_STATUS: RSSI -45dBm (Strong)`
+    ] : [`[${new Date().toLocaleTimeString()}] CONNECTING TO CLOUD API...`];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-                <label className="text-xs text-slate-400 font-mono mb-1 block">ESP32 IP ADDRESS</label>
-                <input
-                    type="text"
-                    value={ip}
-                    onChange={e => setIp(e.target.value)}
-                    placeholder="192.168.1.100"
-                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded px-3 py-2 text-sm text-cyan-200 focus:outline-none focus:border-cyan-500/50 font-mono"
-                />
-            </div>
-            <div>
-                <label className="text-xs text-slate-400 font-mono mb-1 block">WIFI SSID</label>
-                <input
-                    type="text"
-                    value={ssid}
-                    onChange={e => setSsid(e.target.value)}
-                    placeholder="Home_Network_2G"
-                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded px-3 py-2 text-sm text-cyan-200 focus:outline-none focus:border-cyan-500/50 font-mono"
-                />
-            </div>
-            <button
-                onClick={handleSave}
-                disabled={status === 'SAVING' || !ip}
-                className={`h-[38px] px-6 rounded font-bold text-xs tracking-widest transition-all ${status === 'SAVED' ? 'bg-emerald-500 text-black' :
-                    status === 'ERROR' ? 'bg-red-500 text-white' :
-                        'bg-cyan-500 hover:bg-cyan-400 text-black'
-                    }`}
-            >
-                {status === 'SAVING' ? 'CONNECTING...' :
-                    status === 'SAVED' ? 'CONNECTED!' :
-                        status === 'ERROR' ? 'FAILED' : 'CONNECT DEVICE'}
-            </button>
+        <div className="font-mono text-xs text-emerald-500/80 space-y-1 h-32 overflow-y-auto">
+            {logs.map((log, i) => (
+                <div key={i} className="border-b border-emerald-500/10 pb-1">{log}</div>
+            ))}
+            <div className="animate-pulse">_</div>
         </div>
     );
 };

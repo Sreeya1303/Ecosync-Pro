@@ -29,6 +29,13 @@
 /* Base Reset */
 :root {
   color-scheme: dark;
+  font-family: 'Fira Sans', 'Outfit', 'Inter', sans-serif;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: 'Fira Code', monospace;
 }
 
 body {
@@ -45,7 +52,6 @@ body {
   background-position: center;
   background-attachment: fixed;
   color: #e2e8f0;
-  font-family: 'Outfit', 'Inter', sans-serif;
   overflow-x: hidden;
 }
 
@@ -191,7 +197,6 @@ body::before {
 /* Leaflet Dark Green Mode Override */
 .leaflet-container {
   background: #022c22 !important;
-  font-family: 'Outfit', sans-serif !important;
 }
 
 .leaflet-bar a {

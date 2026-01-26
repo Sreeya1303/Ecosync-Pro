@@ -61,9 +61,9 @@ const LandingPage = () => {
                     {/* Links Section */}
                     <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest text-emerald-100/60 uppercase">
                         <a href="/" className="hover:text-emerald-400 transition-colors">Home</a>
-                        <a href="#" className="hover:text-emerald-400 transition-colors">About</a>
-                        <a href="#" className="hover:text-emerald-400 transition-colors">Contact</a>
-                        <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Github</a>
+                        <a href="mailto:contact@ecosync.io" className="hover:text-emerald-400 transition-colors">Contact</a>
+                        <a href="#about" className="hover:text-emerald-400 transition-colors">About</a>
+                        <a href="https://github.com/projectc943-prog/Ecosync" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Github</a>
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -102,18 +102,18 @@ const LandingPage = () => {
 
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none mb-6">
                             <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-emerald-200">
-                                SYMBIOTIC
+                                CLOUD-BASED IOT
                             </span>
                             <span className="block bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-lime-400 to-teal-400 animate-gradient-x bg-[length:200%_auto]">
-                                ECO-INTELLIGENCE
+                                ENVIRONMENTAL
                             </span>
                             <span className="block text-4xl md:text-6xl text-emerald-500/40 mt-2 font-light tracking-wide">
-                                NETWORK
+                                MONITORING
                             </span>
                         </h1>
 
                         <p className="text-xl md:text-2xl text-slate-300 mt-8 font-light max-w-2xl mx-auto leading-relaxed">
-                            Next-gen platform merging <span className="text-emerald-400 font-medium">IoT biosensors</span> with <span className="text-lime-400 font-medium">generative AI</span> for planetary health monitoring.
+                            Next-gen platform merging <span className="text-emerald-400 font-medium">IoT sensors</span> with <span className="text-lime-400 font-medium">generative AI</span> for real-time environmental alerts.
                         </p>
                     </div>
 
@@ -133,10 +133,10 @@ const LandingPage = () => {
                                 </div>
                                 <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors tracking-tight">Access Dashboard</h3>
                                 <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                                    Visualize live environmental telemetry, air quality indexes, and predictive AI models.
+                                    Visualize live telemetry, air quality indexes, and predictive models.
                                 </p>
                                 <div className="mt-auto flex items-center gap-3 text-emerald-400 font-bold tracking-widest text-xs uppercase group-hover:text-emerald-300">
-                                    Initialize <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                    Access System <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>
                         </div>
@@ -188,7 +188,7 @@ const LandingPage = () => {
 
             {/* --- FOOTER --- */}
             <footer className="py-8 text-center text-emerald-900/50 text-xs tracking-widest uppercase border-t border-white/5 font-mono">
-                <p>SYMBIOTIC ECO-INTELLIGENCE NETWORK // SECURE BIO-INFRASTRUCTURE // 2026</p>
+                <p>CLOUD-BASED IOT ENVIRONMENTAL MONITORING // SECURE INFRASTRUCTURE // 2026</p>
             </footer>
 
         </div>

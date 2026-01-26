@@ -13,7 +13,7 @@ export const THEME = {
 };
 
 export const Card = ({ children, className = '' }) => (
-    <div className={`bg-[#1e2329]/80 backdrop-blur-md border border-gray-800 rounded-xl p-4 shadow-xl ${className}`}>
+    <div className={`glass-panel rounded-xl p-4 shadow-xl transition-all duration-300 ${className}`}>
         {children}
     </div>
 );

@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy requirements from backend directory
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,8 +22,8 @@ USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
-# Copy application code with correct ownership
-COPY --chown=user . .
+# Copy backend application code to root of container
+COPY --chown=user backend/ .
 
 # Create directory for SQLite
 RUN mkdir -p /app/data
@@ -35,5 +35,5 @@ EXPOSE 7860
 ENV PYTHONUNBUFFERED=1
 ENV PORT=7860
 
-# Run the application
+# Run the application (Note: layout is now flat in /app)
 CMD uvicorn app.main:app --host 0.0.0.0 --port 7860 --workers 1

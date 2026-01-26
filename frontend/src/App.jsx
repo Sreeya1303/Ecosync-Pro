@@ -2,9 +2,11 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import DashboardShell from './layouts/DashboardLayout';
 import Sidebar from './layouts/Sidebar';
+import MobileNav from './layouts/MobileNav';
 import ErrorBoundary from './components/ErrorBoundary';
 import AIAssistant from './components/AIAssistant';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LocationProvider } from './contexts/LocationContext';
 
 // Lazy Load Pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -43,7 +45,8 @@ const MainLayout = ({ children }) => (
     <div className="mouse-glow" />
     <AIAssistant />
     <Sidebar />
-    <main className="flex-1 h-full overflow-y-auto relative z-10 scrollbar-hide">
+    <MobileNav />
+    <main className="flex-1 h-full overflow-y-auto relative z-10 scrollbar-hide pb-20 lg:pb-0">
       <div className="page-sweep" />
       <Suspense fallback={<PageLoader />}>
         {children}
@@ -153,7 +156,9 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <Router>
-          <AppContent />
+          <LocationProvider>
+            <AppContent />
+          </LocationProvider>
         </Router>
       </AuthProvider>
     </ErrorBoundary>

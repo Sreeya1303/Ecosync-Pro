@@ -9,6 +9,8 @@ import API_BASE_URL from '../../config';
 import WeatherNews from './WeatherNews';
 import TopLocations from './TopLocations';
 import SettingsDialog from './shared/SettingsDialog';
+import { useLocation } from '../../contexts/LocationContext';
+import AIAnalysisCard from './AIAnalysisCard';
 
 const CauseExplorer = ({ weather, aqi }) => {
     // Rule-based analysis
@@ -546,20 +548,16 @@ const ProView = () => {
             <div className="flex justify-between items-end">
                 <div>
                     <div className="mb-2">
-                        <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300 tracking-tighter uppercase mb-1 drop-shadow-lg">
-                            SYMBIOTIC ECO-INTELLIGENCE NETWORK
+                        <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300 tracking-tighter uppercase mb-1 drop-shadow-xl font-sans">
+                            CLOUD-BASED IOT ENVIRONMENTAL MONITORING
                         </h2>
-                        <p className="text-[10px] md:text-xs text-emerald-500/80 font-mono tracking-widest uppercase border-l-2 border-emerald-500/50 pl-3">
-                            Next-gen platform merging IoT biosensors with generative AI for planetary health monitoring
+                        <p className="text-[10px] md:text-xs text-emerald-500/80 font-mono tracking-widest uppercase border-l-2 border-emerald-500/50 pl-3 flex items-center gap-2">
+                            MONITORING ZONE: <span className="text-white font-bold">{activeLocation.name || 'HYDERABAD'}</span>
                         </p>
                     </div>
 
                     {/* Search Bar with Autocomplete */}
                     <div className="flex items-center gap-2 mt-1 relative" ref={wrapperRef}>
-                        <span className={`text-xs ${THEME.colors.subText} font-mono uppercase hidden sm:block`}>
-                            {searchQuery.city || 'GLOBAL'} ZONE • PUBLIC API
-                        </span>
-
                         <div className="relative flex items-center gap-2">
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
@@ -636,6 +634,43 @@ const ProView = () => {
                             {r}
                         </button>
                     ))}
+
+                    <button
+                        onClick={() => {
+                            // Trigger Full Screen Alert
+                            const alertOverlay = document.createElement('div');
+                            alertOverlay.className = 'fixed inset-0 z-[9999] bg-red-950/90 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300';
+                            alertOverlay.innerHTML = `
+                                <div class="bg-red-600/20 p-8 rounded-full animate-ping mb-8">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-500"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </div>
+                                <h1 class="text-6xl font-black text-red-500 tracking-tighter mb-4 animate-pulse text-center">HAZARD DETECTED</h1>
+                                <p class="text-2xl text-white font-mono uppercase tracking-widest mb-8">Toxic Gas Leak: Sector 4</p>
+                                <button onclick="this.parentElement.remove()" class="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-all uppercase tracking-widest">
+                                    ACKNOWLEDGE & DISMISS
+                                </button>
+                            `;
+                            document.body.appendChild(alertOverlay);
+                            // Beep (simple osc)
+                            try {
+                                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                const oscillator = audioCtx.createOscillator();
+                                oscillator.type = 'sawtooth';
+                                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+                                oscillator.connect(audioCtx.destination);
+                                oscillator.start();
+                                oscillator.stop(audioCtx.currentTime + 0.5);
+                            } catch (e) { }
+                        }}
+                        className="p-1 px-2 rounded border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-white transition-colors"
+                        title="Simulate Alert"
+                    >
+                        <AlertTriangle size={18} />
+                    </button>
+                    <button onClick={() => window.print()} className="p-1 px-2 rounded border border-cyan-500/30 text-cyan-400 hover:text-white hover:bg-cyan-500/20 transition-colors" title="Export PDF Report">
+                        <Share2 size={18} />
+                    </button>
                     <button onClick={() => setIsSettingsOpen(true)} className="p-1 px-2 rounded border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
                         <Settings size={18} />
                     </button>
@@ -795,8 +830,13 @@ const ProView = () => {
             </div>
 
             {/* NEW: Weather News Ticker */}
-            <div className="h-[200px]">
-                <WeatherNews />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 h-[200px]">
+                    <WeatherNews />
+                </div>
+                <div className="h-[200px]">
+                    <AIAnalysisCard weather={weather} aqi={aqi} locationName={activeLocation.name} />
+                </div>
             </div>
 
             {/* NEW: Biosphere DNA Row & Top Locations */}
@@ -834,7 +874,7 @@ const ProView = () => {
                     </div>
                 </Card>
             </div>
-        </div>
+        </div >
     );
 };
 

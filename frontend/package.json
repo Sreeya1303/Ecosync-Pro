@@ -29,6 +29,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@supabase/supabase-js": "^2.91.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.27.5",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",

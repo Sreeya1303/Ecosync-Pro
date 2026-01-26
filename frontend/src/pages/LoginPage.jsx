@@ -277,12 +277,12 @@ const LoginPage = () => {
 
                     <div className="text-center mb-6 relative z-10">
                         <h1 className="text-3xl font-black text-white tracking-tight mb-1 drop-shadow-md font-mono">
-                            {authStage === 'login' && 'SYMBIOTIC LOGIN'}
+                            {authStage === 'login' && 'CLOUD IOT LOGIN'}
                             {authStage === 'signup_email' && 'JOIN THE NETWORK'}
                             {authStage === 'signup_password' && 'SECURE UPLINK'}
                         </h1>
                         <p className="text-emerald-400/80 text-[11px] font-bold tracking-[0.3em] uppercase font-mono">
-                            {authStage === 'login' && 'SYMBIOTIC ECO-INTELLIGENCE NETWORK'}
+                            {authStage === 'login' && 'CLOUD-BASED IOT ENVIRONMENTAL MONITORING'}
                             {authStage.includes('signup') && 'ESTABLISHING CONNECTION...'}
                         </p>
                     </div>
