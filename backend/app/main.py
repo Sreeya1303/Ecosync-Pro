@@ -135,28 +135,72 @@ async def poll_devices():
         
         await asyncio.sleep(60)
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# --- Alerting Service ---
+def send_email_alert(subject: str, body: str):
+    """Sends an email alert using SMTP (e.g., Gmail)"""
+    sender_email = os.getenv("EMAIL_USER")
+    sender_password = os.getenv("EMAIL_PASS")
+    receiver_email = os.getenv("ALERT_RECEIVER_EMAIL", sender_email) # Default to self
+
+    if not sender_email or not sender_password:
+        logger.warning("Skipping Email Alert: EMAIL_USER or EMAIL_PASS not set.")
+        return
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+        msg['Subject'] = f"EcoSync Alert: {subject}"
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Standard Gmail SMTP port
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        text = msg.as_string()
+        server.sendmail(sender_email, receiver_email, text)
+        server.quit()
+        logger.info(f"Email Alert sent to {receiver_email}")
+    except Exception as e:
+        logger.error(f"Failed to send email alert: {e}")
+
 def check_alerts(db: Session, device: models.Device, measurement: models.SensorData):
-    """Simple rule-based alerting logic"""
-    # High Temp Alert
-    if measurement.temperature and measurement.temperature > 40:
-        logger.warning(f"High Temp Alert: {measurement.temperature}°C on {device.name}")
+    """Rule-based alerting with Email Notification"""
+    
+    triggers = []
+    
+    # 1. High Temperature -> Fire Risk
+    if measurement.temperature and measurement.temperature > 45:
+        triggers.append(f"CRITICAL TEMP: {measurement.temperature}°C (Fire Risk)")
+    
+    # 2. High Gas -> Toxic Leak
+    # Using PM10 field as MQ_Smoothed storage based on line 215
+    if measurement.pm10 and measurement.pm10 > 80: # Normalized 0-100 scale, 80 is high
+        triggers.append(f"GAS LEAK DETECTED: Level {measurement.pm10}% (Toxic)")
+
+    # 3. High PM2.5 -> Hazardous Air
+    if measurement.pm2_5 and measurement.pm2_5 > 150:
+        triggers.append(f"HAZARDOUS AIR: PM2.5 is {measurement.pm2_5} µg/m³")
+
+    if triggers:
+        alert_msg = " | ".join(triggers)
+        logger.warning(f"ALERT TRIGGERED: {alert_msg} on {device.name}")
         
-        # --- EDUCATIONAL NOTE: REAL-WORLD IMPLEMENTATION ---
-        # In a real SaaS product, you would integrate an SMS/Email provider here.
-        # Example (Twilio):
-        #   client.messages.create(
-        #       body=f"CRITICAL: Temp is {measurement.temperature}C!",
-        #       from_='+15017122661', to='+15558675310'
-        #   )
-        # Example (SendGrid):
-        #   message = Mail(from_email='alert@ecosync.com', ... )
-        # ---------------------------------------------------
-        
+        # Save to DB
         db.add(models.Alert(
-            metric="temperature",
-            value=measurement.temperature,
-            message=f"High Temperature Alert: {measurement.temperature}°C on {device.name}"
+            metric="multi",
+            value=0.0,
+            message=alert_msg
         ))
+        
+        # Send Email
+        send_email_alert("Toxic Environment Detected!", 
+            f"Sensor {device.name} reported critical levels:\n\n{alert_msg}\n\nPlease take immediate action.\n\n- EcoSync Sentinel")
 
 # --- Startup Events ---
 @app.on_event("startup")
