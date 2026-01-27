@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import L from 'leaflet';
-import { Navigation, Bot } from 'lucide-react';
+import { Navigation, Bot, Activity, Search } from 'lucide-react';
+import { Geocoder } from 'leaflet-control-geocoder';
 
 // Custom Icons
 const createIcon = (color) => new L.DivIcon({
@@ -52,9 +54,52 @@ const MapController = ({ center }) => {
     return null;
 };
 
-const MapComponent = ({ isPro = false }) => {
-    const [position, setPosition] = useState([17.3850, 78.4867]); // Default: Hyderabad
-    const [robotPos, setRobotPos] = useState([17.3860, 78.4877]); // Slightly offset
+const SearchField = ({ onLocationFound }) => {
+    const map = useMap();
+
+    useEffect(() => {
+        const geocoder = L.Control.Geocoder.nominatim();
+
+        // Custom search control behavior could be added here
+        // But leaflet-control-geocoder usually attaches a control to the map
+        // Let's implement a custom search Input if we want better UI control
+        // OR use the library's control.
+
+        const control = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            geocoder: geocoder,
+            placeholder: "Search sector...",
+            errorMessage: "Sector not found.",
+            collapsed: false, // Make it always visible
+            showResultIcons: true
+        })
+            .on('markgeocode', function (e) {
+                const bbox = e.geocode.bbox;
+                const poly = L.polygon([
+                    bbox.getSouthEast(),
+                    bbox.getNorthEast(),
+                    bbox.getNorthWest(),
+                    bbox.getSouthWest()
+                ]);
+                map.fitBounds(poly.getBounds());
+                onLocationFound([e.geocode.center.lat, e.geocode.center.lng]);
+            })
+            .addTo(map);
+
+        return () => map.removeControl(control);
+    }, [map, onLocationFound]);
+
+    return null;
+};
+
+const MapComponent = ({ isPro = false, sensorData = {}, position, onPositionChange }) => {
+    // Local state for Robot only
+    const [robotPos, setRobotPos] = useState([17.3860, 78.4877]);
+
+    // Safe extraction of values
+    const temp = sensorData.temperature?.toFixed(1) || '--';
+    const hum = sensorData.humidity?.toFixed(1) || '--';
+    const aqi = sensorData.mq_ppm?.toFixed(0) || '--';
 
     // Simulate Robot Movement (Patrol)
     useEffect(() => {
@@ -72,7 +117,7 @@ const MapComponent = ({ isPro = false }) => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const { latitude, longitude } = pos.coords;
-                    setPosition([latitude, longitude]);
+                    onPositionChange([latitude, longitude]);
                 },
                 (err) => alert("Location access denied or unavailable.")
             );
@@ -86,7 +131,7 @@ const MapComponent = ({ isPro = false }) => {
             <MapContainer
                 center={position}
                 zoom={13}
-                style={{ height: '100%', width: '100%', background: '#0f172a' }}
+                style={{ height: '100%', minHeight: '400px', width: '100%', background: '#0f172a' }}
                 zoomControl={false}
             >
                 {/* Dark Mode Map Tiles */}
@@ -96,6 +141,8 @@ const MapComponent = ({ isPro = false }) => {
                 />
 
                 <MapController center={position} />
+
+                {isPro && <SearchField onLocationFound={onPositionChange} />}
 
                 {/* User Location */}
                 <CircleMarker
@@ -107,15 +154,28 @@ const MapComponent = ({ isPro = false }) => {
                     fillOpacity={0.8}
                 >
                     <Popup className="custom-popup bio-popup">
-                        <div className="p-2 min-w-[180px]">
-                            <h3 className="font-bold text-emerald-900 flex items-center gap-2 mb-1">
+                        <div className="p-2 min-w-[200px]">
+                            <h3 className="font-bold text-emerald-900 flex items-center gap-2 mb-2 border-b border-emerald-200 pb-1">
                                 <Navigation size={16} className="text-emerald-600" />
                                 OPERATIVE STATUS
                             </h3>
-                            <div className="space-y-1 text-xs text-slate-700">
-                                <p><strong>Status:</strong> <span className="text-emerald-600 font-bold">ONLINE</span></p>
-                                <p><strong>Role:</strong> Field Researcher</p>
-                                <div className="bg-emerald-100 p-1.5 rounded border border-emerald-200 font-mono mt-1">
+                            <div className="space-y-1.5 text-xs text-slate-700">
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-500 text-[10px] uppercase">Temp</span>
+                                        <span className="font-mono font-bold text-emerald-800 text-sm">{temp}°C</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-500 text-[10px] uppercase">Humidity</span>
+                                        <span className="font-mono font-bold text-emerald-800 text-sm">{hum}%</span>
+                                    </div>
+                                    <div className="flex flex-col col-span-2 border-t border-emerald-100 pt-1 mt-1">
+                                        <span className="text-slate-500 text-[10px] uppercase">Air Quality (PM2.5)</span>
+                                        <span className="font-mono font-bold text-emerald-800 text-sm">{aqi} PPM</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-100 p-1.5 rounded border border-emerald-200 font-mono mt-2 text-[10px]">
                                     Lat: {position[0].toFixed(5)}<br />
                                     Lon: {position[1].toFixed(5)}
                                 </div>

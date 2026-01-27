@@ -211,3 +211,47 @@ body::before {
   color: white !important;
   backdrop-filter: blur(4px);
 }
+
+/* Leaflet Geocoder - Bio Theme */
+.leaflet-control-geocoder {
+  background: rgba(2, 44, 34, 0.9) !important;
+  border: 1px solid #10b981 !important;
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-control-geocoder-icon {
+  background: transparent !important; /* Use our icon or handle transparent */
+  border-radius: 8px; 
+}
+
+.leaflet-control-geocoder-form input {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  border: none !important;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+}
+
+.leaflet-control-geocoder-form input::placeholder {
+  color: #94a3b8;
+}
+
+.leaflet-control-geocoder-alternatives {
+  background: rgba(2, 44, 34, 0.95) !important;
+  border: 1px solid #10b981 !important;
+  width: 260px !important;
+  border-radius: 8px !important;
+}
+
+.leaflet-control-geocoder-alternatives li {
+  border-bottom: 1px solid #065f46 !important;
+  color: #e2e8f0 !important;
+  font-size: 12px;
+}
+
+.leaflet-control-geocoder-alternatives li:hover, .leaflet-control-geocoder-selected {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+}

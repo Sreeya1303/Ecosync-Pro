@@ -1,4 +1,4 @@
-```javascript
+
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { THEME } from '../components/dashboard/shared/Common';
@@ -68,7 +68,7 @@ const DashboardShell = () => {
     }, [mode]);
 
     return (
-        <div className={`min - h - screen w - full relative overflow - x - hidden text - gray - 200 font - sans selection: bg - yellow - 500 / 30`}>
+        <div className={`min-h-screen w-full relative overflow-x-hidden text-gray-200 font-sans selection:bg-yellow-500/30`}>
 
             {/* --- LOCATION MODAL --- */}
             {showLocModal && (
@@ -148,4 +148,4 @@ const DashboardShell = () => {
 };
 
 export default DashboardShell;
-```
+

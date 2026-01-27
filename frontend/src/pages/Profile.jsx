@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, MapPin, Phone, Linkedin, Github, Edit2, Shield, Activity, Camera, Save, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE_URL from '../config';
 
 const Profile = () => {
     const { currentUser } = useAuth();

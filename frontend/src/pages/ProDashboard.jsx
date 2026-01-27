@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Legend } from 'recharts';
-import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle } from 'lucide-react';
+import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
 import MapComponent from '../components/MapComponent';
 import Analytics from './Analytics';
+import Profile from './Profile';
 
 const ProDashboard = ({ onToggle }) => {
+    const [mapPosition, setMapPosition] = useState([17.3850, 78.4867]); // Default: Hyderabad
     const { userProfile } = useAuth();
-    // Pro Mode relies on Supabase
-    const { history: sensorData } = useEsp32Stream('pro');
+    // Pro Mode relies on Supabase and Real Coordinates
+    const { history: sensorData } = useEsp32Stream('pro', mapPosition);
 
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -18,6 +20,7 @@ const ProDashboard = ({ onToggle }) => {
     const latestData = useMemo(() => (sensorData && sensorData.length > 0) ? sensorData[sensorData.length - 1] : {}, [sensorData]);
     const temp = useMemo(() => latestData.temperature?.toFixed(1) || '--', [latestData]);
     const hum = useMemo(() => latestData.humidity?.toFixed(1) || '--', [latestData]);
+    const aqi = useMemo(() => latestData.mq_ppm?.toFixed(0) || '--', [latestData]);
 
     const StatCard = ({ title, value, unit, icon: Icon }) => (
         <div className="glass-panel p-6 border-l-4 border-l-amber-500 relative overflow-hidden group bg-slate-900/40">
@@ -27,34 +30,58 @@ const ProDashboard = ({ onToggle }) => {
         </div>
     );
 
+    const KalmanChart = ({ title, rawKey, filteredKey, color, icon: Icon, unit }) => (
+        <div className="glass-panel p-6 border-t-2 border-amber-500/50 flex flex-col bg-slate-900/40 h-80">
+            <h3 className="text-amber-400 font-bold mb-4 flex items-center gap-2">
+                <Icon size={18} /> {title}
+            </h3>
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={sensorData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#451a03" />
+                        <XAxis dataKey="timestamp" stroke="#d97706" tick={false} />
+                        <YAxis stroke="#d97706" />
+                        <Tooltip contentStyle={{ backgroundColor: '#2a1a08', borderColor: '#d97706' }} />
+                        <Legend />
+                        <Line type="monotone" dataKey={rawKey} stroke={color} strokeOpacity={0.4} name={`Raw (Noisy)`} dot={false} strokeWidth={1} />
+                        <Line type="monotone" dataKey={filteredKey} stroke={color} strokeWidth={3} name={`Filtered`} dot={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+
     const renderOverview = () => (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Core Temp" value={temp} unit="°C" icon={Thermometer} />
                 <StatCard title="Humidity" value={hum} unit="%" icon={Droplets} />
-                <StatCard title="AI Confidence" value="98.2" unit="%" icon={Shield} />
+                <StatCard title="Air Quality" value={aqi} unit="PM2.5" icon={Wind} />
                 <StatCard title="System Status" value="ONLINE" unit="" icon={Activity} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-96">
-                <div className="glass-panel p-6 border-t-2 border-amber-500/50 flex flex-col bg-slate-900/40">
-                    <h3 className="text-amber-400 font-bold mb-4 flex items-center gap-2">
-                        <Zap size={18} /> Kalman Filter Analysis
-                    </h3>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={sensorData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#451a03" />
-                                <XAxis dataKey="timestamp" stroke="#d97706" tick={false} />
-                                <YAxis stroke="#d97706" />
-                                <Tooltip contentStyle={{ backgroundColor: '#2a1a08', borderColor: '#d97706' }} />
-                                <Legend />
-                                <Line type="monotone" dataKey="temperature" stroke="#78350f" strokeOpacity={0.5} name="Raw Sensor" dot={false} />
-                                <Line type="monotone" dataKey="temperature" stroke="#fbbf24" strokeWidth={2} name="Kalman Filter" dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <KalmanChart
+                    title="Temperature Analysis"
+                    rawKey="raw_temperature"
+                    filteredKey="temperature"
+                    color="#fbbf24"
+                    icon={Zap}
+                />
+                <KalmanChart
+                    title="Humidity Analysis"
+                    rawKey="raw_humidity"
+                    filteredKey="humidity"
+                    color="#3b82f6"
+                    icon={Droplets}
+                />
+                <KalmanChart
+                    title="Air Quality Analysis"
+                    rawKey="raw_mq_ppm"
+                    filteredKey="mq_ppm"
+                    color="#10b981"
+                    icon={Wind}
+                />
             </div>
         </div>
     );
@@ -64,12 +91,21 @@ const ProDashboard = ({ onToggle }) => {
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/95 border-r border-amber-500/20 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-20 lg:hover:w-64 group flex flex-col items-center py-8`}>
                 <div className="mb-12"><Shield className="text-amber-500" size={32} /></div>
                 <div className="flex-1 w-full space-y-4 px-4">
-                    {['overview', 'analytics', 'map', 'profile'].map(id => (
-                        <button key={id} onClick={() => setActiveView(id)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeView === id ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-slate-500 hover:text-amber-200'}`}>
-                            <Activity size={24} />
-                            <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold uppercase transition-opacity">{id}</span>
-                        </button>
-                    ))}
+                    {['overview', 'analytics', 'map', 'profile'].map(id => {
+                        const icons = {
+                            overview: Activity,
+                            analytics: Droplets,
+                            map: Shield, // Using Shield or MapIcon if imported
+                            profile: User
+                        };
+                        const Icon = icons[id] || Activity;
+                        return (
+                            <button key={id} onClick={() => setActiveView(id)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeView === id ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-slate-500 hover:text-amber-200'}`}>
+                                <Icon size={24} />
+                                <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold uppercase transition-opacity">{id}</span>
+                            </button>
+                        );
+                    })}
                 </div>
                 <button onClick={onToggle} className="mt-auto mb-8 mx-4 p-3 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors flex items-center gap-2 justify-center">
                     <User size={18} /> <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold">SWITCH LITE</span>
@@ -89,7 +125,8 @@ const ProDashboard = ({ onToggle }) => {
                 <main className="flex-1 overflow-y-auto p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/10 via-[#050302] to-[#050302]">
                     {activeView === 'overview' && renderOverview()}
                     {activeView === 'analytics' && <Analytics sensorData={sensorData} isProMode={true} predictions={[]} />}
-                    {activeView === 'map' && <div className="h-full rounded-xl border border-amber-500/30 overflow-hidden"><MapComponent isPro={true} /></div>}
+                    {activeView === 'map' && <div className="h-full rounded-xl border border-amber-500/30 overflow-hidden"><MapComponent isPro={true} sensorData={latestData} position={mapPosition} onPositionChange={setMapPosition} /></div>}
+                    {activeView === 'profile' && <Profile />}
                 </main>
             </div>
         </div>
