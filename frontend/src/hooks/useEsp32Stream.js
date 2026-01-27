@@ -65,7 +65,7 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
 
         const fetchData = async () => {
             try {
-                if (mode === 'lite') {
+                if (mode === 'lite' || mode === 'light') {
                     // LITE MODE: Try API, fallback to simple mock
                     try {
                         const res = await fetch('/api/data'); // Proxy endpoint
@@ -202,9 +202,115 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
         return () => clearInterval(intervalId);
     }, []);
 
+    // --- WEB SERIAL LOGIC ---
+    const portRef = useRef(null);
+    const readerRef = useRef(null);
+
+    const disconnectSerial = async () => {
+        if (readerRef.current) {
+            await readerRef.current.cancel();
+            readerRef.current = null;
+        }
+        if (portRef.current) {
+            await portRef.current.close();
+            portRef.current = null;
+        }
+        setStream(prev => ({ ...prev, connected: false }));
+        setHealth({ status: 'DISCONNECTED', lastPacketTime: null });
+    };
+
+    const connectSerial = async () => {
+        if (!("serial" in navigator)) {
+            alert("Web Serial is not supported in this browser. Please use Chrome or Edge.");
+            return;
+        }
+
+        try {
+            const port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 115200 });
+            portRef.current = port;
+
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const reader = textDecoder.readable.getReader();
+            readerRef.current = reader;
+
+            setStream(prev => ({ ...prev, connected: true }));
+            setHealth({ status: 'STREAMING', lastPacketTime: new Date() });
+
+            let lineBuffer = '';
+            let filtered = { t: 0, h: 0, p: 0 };
+            const alpha = 0.15; // Filter strength
+
+            // Reading loop
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                lineBuffer += value;
+                const lines = lineBuffer.split('\n');
+                lineBuffer = lines.pop(); // Keep partial line
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+
+                    try {
+                        const json = JSON.parse(trimmed);
+
+                        // Simple EMA Filter
+                        const tRaw = json.temperature || json.temp || 0;
+                        const hRaw = json.humidity || json.hum || 0;
+                        const pRaw = json.pm25 || json.pm2_5 || json.aqi || 0;
+
+                        if (filtered.t === 0) {
+                            filtered = { t: tRaw, h: hRaw, p: pRaw };
+                        } else {
+                            filtered.t = alpha * tRaw + (1 - alpha) * filtered.t;
+                            filtered.h = alpha * hRaw + (1 - alpha) * filtered.h;
+                            filtered.p = alpha * pRaw + (1 - alpha) * filtered.p;
+                        }
+
+                        const packet = {
+                            ts: Date.now(),
+                            timestamp: new Date().toLocaleTimeString(),
+                            temperature: filtered.t,
+                            temp_raw: tRaw,
+                            humidity: filtered.h,
+                            hum_raw: hRaw,
+                            pm25: filtered.p,
+                            pm25_raw: pRaw,
+                            pressure: json.pressure || 1013,
+                            mq_raw: json.mq_raw || json.gas || 0,
+                            trustScore: 100,
+                            deviceId: "ESP32-SERIAL"
+                        };
+
+                        bufferRef.current = [...bufferRef.current, packet].slice(-50);
+                        setStream(prev => ({
+                            ...prev,
+                            connected: true,
+                            lastSeen: Date.now(),
+                            data: packet,
+                            history: bufferRef.current
+                        }));
+                        setHealth({ status: 'ONLINE', lastPacketTime: new Date() });
+
+                    } catch (e) {
+                        console.log("Serial Parse Error on line:", trimmed);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Serial Connection Error:", err);
+            disconnectSerial();
+        }
+    };
+
     return {
         ...stream,
         health,
-        connectSerial: () => console.log("Using Cloud API Mode")
+        connectSerial,
+        disconnectSerial
     };
 };
