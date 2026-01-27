@@ -152,7 +152,7 @@ const ProDashboard = ({ onToggle }) => {
 
             <div className="flex-1 flex flex-col h-full relative">
                 <header className="flex justify-between items-center p-6 border-b border-amber-500/20 bg-black/80 backdrop-blur-md">
-                    <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-600">S4 PRO // AI CORE</h1>
+                    <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-600">🌥️ S4 PRO</h1>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => alert(`✅ SYSTEM STATUS: ONLINE\n\nCloud Sync is OPEN and capturing data.\nLast Packet Stored: ${new Date().toLocaleTimeString()}`)}
