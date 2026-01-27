@@ -103,7 +103,22 @@ class Alert(Base):
     radius_km = Column(Float, default=1.0)
     
     is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
     email_sent = Column(Boolean, default=False)
+
+class AlertSettings(Base):
+    __tablename__ = "alert_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, default="skanduri5@gitam.in")
+    
+    # Thresholds
+    temp_threshold = Column(Float, default=45.0)
+    humidity_min = Column(Float, default=20.0)
+    humidity_max = Column(Float, default=80.0)
+    pm25_threshold = Column(Float, default=150.0)
+    
+    is_active = Column(Boolean, default=True)
 
 class APISnapshot(Base):
     __tablename__ = "api_snapshots"

@@ -155,3 +155,19 @@ class UserLayoutResponse(BaseModel):
 
     class Config:
         from_attributes = True
+    class Config:
+        from_attributes = True
+
+class AlertSettingsCreate(BaseModel):
+    user_email: EmailStr
+    temp_threshold: float
+    humidity_min: float
+    humidity_max: float
+    pm25_threshold: float
+    is_active: bool = True
+
+class AlertSettingsResponse(AlertSettingsCreate):
+    id: int
+    
+    class Config:
+        from_attributes = True

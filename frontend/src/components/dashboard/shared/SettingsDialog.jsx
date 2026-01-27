@@ -2,6 +2,54 @@ import React from 'react';
 import { X, Bell, Shield, Moon, Wifi } from 'lucide-react';
 
 const SettingsDialog = ({ isOpen, onClose }) => {
+    const [email, setEmail] = React.useState('skanduri5@gitam.in');
+    const [tempThresh, setTempThresh] = React.useState(45);
+    const [humMin, setHumMin] = React.useState(20);
+    const [humMax, setHumMax] = React.useState(80);
+    const [pm25Thresh, setPm25Thresh] = React.useState(150);
+    const [loading, setLoading] = React.useState(false);
+    const [saved, setSaved] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            // Fetch settings
+            fetch('http://localhost:8000/api/settings/alerts')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.user_email) setEmail(data.user_email);
+                    if (data.temp_threshold) setTempThresh(data.temp_threshold);
+                    if (data.humidity_min) setHumMin(data.humidity_min);
+                    if (data.humidity_max) setHumMax(data.humidity_max);
+                    if (data.pm25_threshold) setPm25Thresh(data.pm25_threshold);
+                })
+                .catch(err => console.error("Failed to load settings:", err));
+        }
+    }, [isOpen]);
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            await fetch('http://localhost:8000/api/settings/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_email: email,
+                    temp_threshold: parseFloat(tempThresh),
+                    humidity_min: parseFloat(humMin),
+                    humidity_max: parseFloat(humMax),
+                    pm25_threshold: parseFloat(pm25Thresh),
+                    is_active: true
+                })
+            });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save settings");
+        }
+        setLoading(false);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -14,20 +62,64 @@ const SettingsDialog = ({ isOpen, onClose }) => {
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                     {/* Section 1 */}
                     <div className="space-y-3">
                         <h3 className="text-xs font-bold text-emerald-500 uppercase flex items-center gap-2">
-                            <Bell size={14} /> Alerts
+                            <Bell size={14} /> Alert Configuration
                         </h3>
-                        <label className="flex items-center justify-between group cursor-pointer">
-                            <span className="text-sm text-gray-300 group-hover:text-white">Push Notifications</span>
-                            <input type="checkbox" defaultChecked className="toggle-checkbox" />
-                        </label>
-                        <label className="flex items-center justify-between group cursor-pointer">
-                            <span className="text-sm text-gray-300 group-hover:text-white">Hazardous Air Warning</span>
-                            <input type="checkbox" defaultChecked className="toggle-checkbox" />
-                        </label>
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Recipient Email</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-400">Max Temp (°C)</label>
+                                <input
+                                    type="number"
+                                    value={tempThresh}
+                                    onChange={(e) => setTempThresh(e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-400">Max PM2.5</label>
+                                <input
+                                    type="number"
+                                    value={pm25Thresh}
+                                    onChange={(e) => setPm25Thresh(e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-400">Min Humidity (%)</label>
+                                <input
+                                    type="number"
+                                    value={humMin}
+                                    onChange={(e) => setHumMin(e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-400">Max Humidity (%)</label>
+                                <input
+                                    type="number"
+                                    value={humMax}
+                                    onChange={(e) => setHumMax(e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Section 2 */}
@@ -54,8 +146,12 @@ const SettingsDialog = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="p-4 border-t border-gray-700 flex justify-end">
-                    <button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-xs tracking-widest transition-all shadow-lg shadow-emerald-900/20">
-                        SAVE CONFIG
+                    <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className={`bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-xs tracking-widest transition-all shadow-lg shadow-emerald-900/20 ${saved ? 'bg-green-500' : ''}`}
+                    >
+                        {loading ? 'SAVING...' : saved ? 'SAVED!' : 'SAVE CONFIG'}
                     </button>
                 </div>
             </div>

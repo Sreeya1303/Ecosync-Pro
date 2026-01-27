@@ -140,11 +140,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # --- Alerting Service ---
-def send_email_alert(subject: str, body: str):
+def send_email_alert(subject: str, body: str, recipient: str = None):
     """Sends an email alert using SMTP (e.g., Gmail)"""
     sender_email = os.getenv("EMAIL_USER")
     sender_password = os.getenv("EMAIL_PASS")
-    receiver_email = os.getenv("ALERT_RECEIVER_EMAIL", sender_email) # Default to self
+    receiver_email = recipient or os.getenv("ALERT_RECEIVER_EMAIL", sender_email) # Use override or default
 
     if not sender_email or not sender_password:
         logger.warning("Skipping Email Alert: EMAIL_USER or EMAIL_PASS not set.")
@@ -170,24 +170,35 @@ def send_email_alert(subject: str, body: str):
         logger.error(f"Failed to send email alert: {e}")
 
 def check_alerts(db: Session, device: models.Device, measurement: models.SensorData):
-    """Rule-based alerting with Email Notification"""
+    """Rule-based alerting with Email Notification (Dynamic Thresholds)"""
+    
+    # Fetch Settings (Use first available for now, or link to User later)
+    # Simple Logic: Get the first active settings
+    settings = db.query(models.AlertSettings).filter(models.AlertSettings.is_active == True).first()
+    
+    # Defaults if no settings found
+    TEMP_THRESH = settings.temp_threshold if settings else 45.0
+    HUM_MIN = settings.humidity_min if settings else 20.0
+    HUM_MAX = settings.humidity_max if settings else 80.0
+    PM25_THRESH = settings.pm25_threshold if settings else 150.0
+    EMAIL_RECIPIENT = settings.user_email if settings else os.getenv("ALERT_RECEIVER_EMAIL")
     
     triggers = []
     
     # 1. High Temperature -> Fire Risk
-    if measurement.temperature and measurement.temperature > 45:
-        triggers.append(f"CRITICAL TEMP: {measurement.temperature}°C (Fire Risk)")
+    if measurement.temperature and measurement.temperature > TEMP_THRESH:
+        triggers.append(f"CRITICAL TEMP: {measurement.temperature}°C (Limit: {TEMP_THRESH}°C)")
     
     # 2. Humidity Extremes -> Biological Stress
     if measurement.humidity:
-        if measurement.humidity > 80:
-            triggers.append(f"HIGH HUMIDITY: {measurement.humidity}% (Mold Risk)")
-        elif measurement.humidity < 20:
-            triggers.append(f"LOW HUMIDITY: {measurement.humidity}% (Dryness Alert)")
+        if measurement.humidity > HUM_MAX:
+            triggers.append(f"HIGH HUMIDITY: {measurement.humidity}% (Limit: {HUM_MAX}%)")
+        elif measurement.humidity < HUM_MIN:
+            triggers.append(f"LOW HUMIDITY: {measurement.humidity}% (Limit: {HUM_MIN}%)")
 
     # 3. High PM2.5 -> Hazardous Air
-    if measurement.pm2_5 and measurement.pm2_5 > 150:
-        triggers.append(f"HAZARDOUS AIR: PM2.5 is {measurement.pm2_5} µg/m³")
+    if measurement.pm2_5 and measurement.pm2_5 > PM25_THRESH:
+        triggers.append(f"HAZARDOUS AIR: PM2.5 is {measurement.pm2_5} µg/m³ (Limit: {PM25_THRESH})")
 
     if triggers:
         alert_msg = " | ".join(triggers)
@@ -197,12 +208,32 @@ def check_alerts(db: Session, device: models.Device, measurement: models.SensorD
         db.add(models.Alert(
             metric="multi",
             value=0.0,
-            message=alert_msg
+            message=alert_msg,
+            recipient_email=EMAIL_RECIPIENT
         ))
         
         # Send Email
-        send_email_alert("Toxic Environment Detected!", 
-            f"Sensor {device.name} reported critical levels:\n\n{alert_msg}\n\nPlease take immediate action.\n\n- EcoSync Sentinel")
+        if EMAIL_RECIPIENT:
+            # rich info
+            timestamp_str = measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+            dashboard_link = f"http://localhost:5173/dashboard?device={device.id}"
+            
+            body = (
+                f"🚨 EcoSync Alert System\n\n"
+                f"Source: {device.name}\n"
+                f"Location: {device.lat}, {device.lon}\n"
+                f"Time: {timestamp_str}\n\n"
+                f"The following threshold violations were detected:\n"
+                f"--------------------------------------------------\n"
+                f"{alert_msg}\n"
+                f"--------------------------------------------------\n\n"
+                f"View live dashboard here:\n{dashboard_link}\n\n"
+                f"- EcoSync Sentinel"
+            )
+            
+            send_email_alert(f"Alert: {device.name} - Action Required", body, recipient=EMAIL_RECIPIENT)
+        else:
+             logger.warning("Alert triggered but no email recipient found.")
 
 # --- Startup Events ---
 @app.on_event("startup")
@@ -403,7 +434,35 @@ async def get_pro_data(lat: float = 17.3850, lon: float = 78.4867, city: str = N
     external_data["fusion"] = fusion_engine.fuse_environmental_data(local_data, ext_simple)
     
     return external_data
+    return external_data
 
+# --- Alert Settings API ---
+@app.get("/api/settings/alerts", response_model=schemas.AlertSettingsResponse, tags=["Settings"])
+def get_alert_settings(db: Session = Depends(get_db)):
+    # Return first active setting or default
+    settings = db.query(models.AlertSettings).first()
+    if not settings:
+        # Create default
+        settings = models.AlertSettings()
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+
+@app.post("/api/settings/alerts", response_model=schemas.AlertSettingsResponse, tags=["Settings"])
+def update_alert_settings(settings: schemas.AlertSettingsCreate, db: Session = Depends(get_db)):
+    # Update existing or create new
+    db_settings = db.query(models.AlertSettings).first()
+    if not db_settings:
+        db_settings = models.AlertSettings(**settings.dict())
+        db.add(db_settings)
+    else:
+        for key, value in settings.dict().items():
+            setattr(db_settings, key, value)
+    
+    db.commit()
+    db.refresh(db_settings)
+    return db_settings
 @app.get("/realtime/map", tags=["Map"])
 async def get_realtime_map_data():
     markers = get_cached_markers()

@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Legend } from 'recharts';
-import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle, Wind, Cloud } from 'lucide-react';
+import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle, Wind, Cloud, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
 import { supabase } from '../config/supabaseClient';
 import MapComponent from '../components/MapComponent';
 import Analytics from './Analytics';
 import Profile from './Profile';
+import SettingsDialog from '../components/dashboard/shared/SettingsDialog';
 
 const ProDashboard = ({ onToggle }) => {
     const [mapPosition, setMapPosition] = useState([17.3850, 78.4867]); // Default: Hyderabad
@@ -16,6 +17,7 @@ const ProDashboard = ({ onToggle }) => {
 
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Derived Data
     const latestData = useMemo(() => (sensorData && sensorData.length > 0) ? sensorData[sensorData.length - 1] : {}, [sensorData]);
@@ -163,6 +165,13 @@ const ProDashboard = ({ onToggle }) => {
                         <div className="flex items-center gap-2 px-4 py-1 bg-amber-500/10 border border-amber-500/40 rounded-full text-amber-400 text-xs font-bold">
                             <CheckCircle size={14} /> SYSTEM OPTIMAL
                         </div>
+                        <button
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="p-2 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors"
+                            title="Settings"
+                        >
+                            <Settings size={20} />
+                        </button>
                     </div>
                 </header>
 
@@ -173,6 +182,7 @@ const ProDashboard = ({ onToggle }) => {
                     {activeView === 'profile' && <Profile />}
                 </main>
             </div >
+            <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div >
     );
 };
