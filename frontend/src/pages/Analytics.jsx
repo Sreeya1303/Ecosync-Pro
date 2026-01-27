@@ -10,28 +10,49 @@ const Analytics = ({ sensorData = [], predictions = [], isProMode = false }) => 
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                // Use new /api/data endpoint
+                if (isProMode) {
+                    // GENERATE MOCK GRID DATA (Simulating 50 Sensor Nodes)
+                    const mockGrid = Array.from({ length: 50 }).map((_, i) => ({
+                        device_id: `NODE-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                        timestamp: new Date(Date.now() - i * 60000).toLocaleString(),
+                        temperature: 20 + Math.random() * 35, // Random temp 20-55
+                        humidity: 30 + Math.random() * 50,
+                        pm2_5: Math.random() * 100
+                    }));
+                    setData(mockGrid);
+                    setLoading(false);
+                    return;
+                }
+
+                // Use new /api/data endpoint for Lite mode
                 const res = await fetch(`${API_BASE_URL}/api/data?limit=50`);
                 if (!res.ok) throw new Error("Analytics Fetch Failed");
 
                 const jsonData = await res.json();
 
-                // Process data: ensure timestamp is valid date object/string for charts
+                // Process data
                 const processed = jsonData.map(d => ({
                     ...d,
                     timestamp: new Date(d.timestamp).toLocaleString()
-                })).reverse(); // Recharts often prefers chronological L->R
+                })).reverse();
 
                 setData(processed);
                 setLoading(false);
             } catch (e) {
                 console.error("Failed to fetch analytics", e);
+                // Fallback for demo if API fails
+                const mockFallback = Array.from({ length: 10 }).map((_, i) => ({
+                    device_id: `DEMO-${i}`,
+                    timestamp: new Date().toLocaleString(),
+                    temperature: 25,
+                    pm2_5: 10
+                }));
+                setData(mockFallback);
                 setLoading(false);
             }
         };
         fetchAnalytics();
-    }, []);
-
+    }, [isProMode]);
     const top10High = [...data].sort((a, b) => b.temperature - a.temperature).slice(0, 10);
     const top10Low = [...data].sort((a, b) => a.temperature - b.temperature).slice(0, 10);
 
