@@ -29,6 +29,7 @@ const LoginPage = () => {
 
     // --- BIO-SCANNER STATE ---
     const [scannerState, setScannerState] = useState('idle'); // idle, scanning, success, error
+    const [geoPermission, setGeoPermission] = useState('prompt'); // prompt, granted, denied
 
     // --- HANDLERS ---
 
@@ -39,7 +40,11 @@ const LoginPage = () => {
         setErrorMessage('');
 
         try {
-            const { error } = await login(email, password);
+            const { error } = await login(email, password, {
+                lat: locationLat,
+                lon: locationLon,
+                name: locationName
+            });
             if (error) throw error;
 
             setScannerState('success');
@@ -103,6 +108,47 @@ const LoginPage = () => {
         }
     };
 
+
+    // --- AUTO-LOCATION ---
+    const requestLocation = () => {
+        if (!navigator.geolocation) {
+            setErrorMessage("GRID ERROR: Geolocation not supported by this terminal.");
+            setGeoPermission('denied');
+            return;
+        }
+
+        setScannerState('scanning');
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                setLocationLat(lat);
+                setLocationLon(lon);
+                setGeoPermission('granted');
+
+                try {
+                    const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                    const data = await response.json();
+                    const city = data.city || data.locality || data.principalSubdivision || "Unknown Sector";
+                    setLocationName(city);
+                } catch (e) {
+                    console.error("Geocoding failed", e);
+                    setLocationName("Mobile Sector");
+                }
+                setScannerState('idle');
+            },
+            (err) => {
+                setErrorMessage("ACCESS DENIED: Location authorization required for system entry.");
+                setGeoPermission('denied');
+                setScannerState('error');
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
+    useEffect(() => {
+        requestLocation();
+    }, []);
 
     // --- SUB-COMPONENTS ---
     const BioBadge = () => (
@@ -169,8 +215,41 @@ const LoginPage = () => {
                 </div>
             </div>
 
-            <button disabled={loading} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2 group border border-emerald-400/20 btn-bio">
-                <span className="group-hover:tracking-widest transition-all duration-300">{loading ? 'VERIFYING...' : 'ACCESS SYSTEM'}</span>
+            <div className="group">
+                <div className={`p-3 rounded-xl border flex items-center justify-between transition-all duration-300 ${geoPermission === 'granted'
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : geoPermission === 'denied'
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : 'bg-slate-800/30 border-slate-700'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                        <Zap size={14} className={geoPermission === 'granted' ? 'text-emerald-400 animate-pulse' : 'text-slate-500'} />
+                        <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-100/60 uppercase">
+                            {geoPermission === 'granted' ? `SECTOR: ${locationName.toUpperCase()}` : 'LOCKING GEOTAG...'}
+                        </span>
+                    </div>
+                    {geoPermission !== 'granted' && (
+                        <button
+                            type="button"
+                            onClick={requestLocation}
+                            className="text-[9px] font-mono px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 rounded border border-emerald-500/40 transition-all"
+                        >
+                            RE-SCAN
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <button
+                disabled={loading || geoPermission !== 'granted'}
+                className={`w-full font-bold py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group border btn-bio ${geoPermission === 'granted'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-emerald-400/20'
+                    : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                    }`}
+            >
+                <span className="group-hover:tracking-widest transition-all duration-300">
+                    {loading ? 'VERIFYING...' : geoPermission === 'granted' ? 'ACCESS SYSTEM' : 'AWAITING GEOTAG'}
+                </span>
                 {!loading && <Scan size={18} className="group-hover:scale-110 transition-transform" />}
             </button>
 

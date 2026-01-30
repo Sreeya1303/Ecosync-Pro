@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime as dt
-from typing import List
+from typing import List, Optional
 import math
 print(f"LOADING MAIN FROM {__file__}")
 
@@ -20,7 +20,8 @@ from .connectors.openaq import OpenAQConnector
 from .connectors.esp32_stub import ESP32StubConnector
 
 from .routers import assistant, auth_v2 as auth, map as map_router, pro_api
-from .services import kalman_filter, aqi_calculator, external_apis, fusion_engine
+from .services import kalman_filter, aqi_calculator, external_apis, fusion_engine, weather_service
+
 from .services.websocket_manager import manager
 from .services.api_cache import refresh_map_cache, get_cached_markers
 
@@ -42,13 +43,27 @@ app = FastAPI(
 def health_check():
     return {"status": "active", "service": "IoT Backend", "timestamp": dt.utcnow()}
 
-# --- Database Initialization ---
-try:
-    models.Base.metadata.create_all(bind=database.engine)
-    admin_setup.create_admin_user()
-    logger.info("Database initialized and Admin user verified.")
-except Exception as e:
-    logger.error(f"Database initialization failed: {e}")
+# --- Database Initialization (Legacy Trigger) ---
+# Moved to startup_event for better error handling in FastAPI
+@app.on_event("startup")
+async def startup_event():
+    try:
+        # 1. Database Schema
+        models.Base.metadata.create_all(bind=database.engine)
+        
+        # 2. Admin Seeding
+        admin_setup.create_admin_user()
+        
+        # 3. Map Cache
+        asyncio.create_task(refresh_map_cache())
+        
+        logger.info("EcoSync Backend Initialized Successfully.")
+    except Exception as e:
+        logger.error(f"Startup execution failed: {e}")
+
+
+
+
 
 # --- CORS Configuration ---
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -160,14 +175,14 @@ async def poll_devices():
         
         await asyncio.sleep(60)
 
-def check_alerts_wrapper(dev_id, measurement_id):
+def check_alerts_wrapper(dev_id, measurement_id, user_email: Optional[str] = None):
     """Wrapper to run check_alerts in a new thread with its own DB session"""
     try:
         db = database.SessionLocal()
         dev = db.query(models.Device).get(dev_id)
         meas = db.query(models.SensorData).get(measurement_id)
         if dev and meas:
-             check_alerts(db, dev, meas)
+             check_alerts(db, dev, meas, user_email)
              db.commit() # Save alerts if any
         db.close()
     except Exception as e:
@@ -227,18 +242,26 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return c * r
 
 
-def check_alerts(db: Session, device: models.Device, measurement: models.SensorData):
+def check_alerts(db: Session, device: models.Device, measurement: models.SensorData, user_email: Optional[str] = None):
     """Rule-based alerting with Email Notification (Dynamic Thresholds)"""
     
-    # Fetch Settings (Use first available for now, or link to User later)
-    # Simple Logic: Get the first active settings
-    settings = db.query(models.AlertSettings).filter(models.AlertSettings.is_active == True).first()
+    # Fetch Settings: Try user-specific first, then fall back to default
+    settings = None
+    if user_email:
+        settings = db.query(models.AlertSettings).filter(
+            models.AlertSettings.user_email == user_email,
+            models.AlertSettings.is_active == True
+        ).first()
+    
+    if not settings:
+        settings = db.query(models.AlertSettings).filter(models.AlertSettings.is_active == True).first()
     
     # Defaults if no settings found
     TEMP_THRESH = settings.temp_threshold if settings else 45.0
     HUM_MIN = settings.humidity_min if settings else 20.0
     HUM_MAX = settings.humidity_max if settings else 80.0
     PM25_THRESH = settings.pm25_threshold if settings else 150.0
+    WIND_THRESH = settings.wind_threshold if settings else 30.0
     # Logic change: We will fetch ALL users below instead of just one recipient
     
     triggers = []
@@ -257,6 +280,10 @@ def check_alerts(db: Session, device: models.Device, measurement: models.SensorD
     # 3. High PM2.5 -> Hazardous Air
     if measurement.pm2_5 and measurement.pm2_5 > PM25_THRESH:
         triggers.append(f"HAZARDOUS AIR: PM2.5 is {measurement.pm2_5} µg/m³ (Limit: {PM25_THRESH})")
+        
+    # 4. High Wind Speed -> Physical Security Risk
+    if measurement.wind_speed and measurement.wind_speed > WIND_THRESH:
+        triggers.append(f"HAZARDOUS WIND: {measurement.wind_speed} km/h (Limit: {WIND_THRESH} km/h)")
 
     if triggers:
         alert_msg = " | ".join(triggers)
@@ -270,31 +297,41 @@ def check_alerts(db: Session, device: models.Device, measurement: models.SensorD
             recipient_email="BROADCAST_ALL" # Indicator that it went to everyone
         ))
         
-        # Broadcast Email to NEARBY active users (Geofencing)
-        users = db.query(models.User).filter(models.User.is_active == True).all()
+        # Targeted Email Logic
         recipients = set()
         
-        ALERT_RADIUS_KM = 50.0 # Users within this range get alerts (approx City size)
-        
-        # Add registered users if they are nearby
-        for user in users:
-            if user.email:
-                # Geofencing Disabled (Columns Removed)
-                # Alerting all verified users for now
-                recipients.add(user.email)
-                logger.info(f"Targeting User {user.email} (Geofencing Disabled)")
-        
-        # ALWAYS Add fallback/admin from settings (Safety Net)
+        # 1. Add the user who sent the data (Primary Target)
+        if user_email:
+            recipients.add(user_email)
+            logger.info(f"Targeting Primary User: {user_email}")
+            
+        # 2. Add fallback/admin from settings (Safety Net)
         if settings and settings.user_email:
             recipients.add(settings.user_email)
             
-        # Also check env var if no users? (Optional, but good for safety)
-        if not recipients:
-             env_email = os.getenv("ALERT_RECEIVER_EMAIL")
-             if env_email:
-                 recipients.add(env_email)
+        # 3. Geofencing (The "Sentinel" Broadcast)
+        if device.lat and device.lon:
+            try:
+                nearby_users = db.query(models.User).filter(
+                    models.User.is_active == True,
+                    models.User.location_lat != None,
+                    models.User.location_lon != None
+                ).all()
+                
+                logger.info(f"Sentinel Scan: Checking {len(nearby_users)} active users near Sector {device.lat},{device.lon}")
+                
+                for u in nearby_users:
+                    dist = calculate_distance(device.lat, device.lon, u.location_lat, u.location_lon)
+                    if dist <= 50.0: # 50km Sector Radius
+                        recipients.add(u.email)
+                        logger.info(f"Targeting Nearby User: {u.email} (Location: {u.location_name or 'Unknown'}, Distance: {dist:.1f}km)")
+            except Exception as geo_error:
+                logger.warning(f"Geofencing disabled (DB schema pending): {geo_error}")
+                # Fallback: Just send to the primary user
+                pass
 
         if recipients:
+            logger.info(f"🚀 SECTOR ALERT: Broadcasting to {len(recipients)} total recipients...")
             timestamp_str = measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
             dashboard_link = f"http://localhost:5173/dashboard?device={device.id}"
             
@@ -333,9 +370,16 @@ class IoTSensorData(BaseModel):
     pm25: float = 0.0
     pressure: float = 1013.0
     mq_raw: float = 0.0
+    wind_speed: float = 0.0
+    user_email: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+
+
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 
 @app.post("/iot/data", tags=["IoT"])
-async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
+async def receive_iot_data(data: IoTSensorData, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Receives sensor data from ESP32, applies Kalman filtering, saves to DB, and broadcasts via WebSocket.
     """
@@ -348,19 +392,29 @@ async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
         filtered_pm25, pm25_conf = kalman_filter.filter_pm25(data.pm25)
         mq_cleaned = kalman_filter.clean_mq_data(data.mq_raw)
         
-        # 2. Get/Create Device
-        device_id = "ESP32_MAIN"
+        # 2. Get/Create Device (Unique per User for localized geofencing)
+        id_sanitized = data.user_email.replace("@", "_").replace(".", "_") if data.user_email else "MAIN"
+        device_id = f"DASHBOARD_{id_sanitized}"
+        
         device = db.query(models.Device).filter(models.Device.id == device_id).first()
         if not device:
             device = models.Device(
-                id=device_id, name="ESP32 Unit", connector_type="esp32",
-                lat=0.0, lon=0.0, status="online", last_seen=current_ts
+                id=device_id, name=f"Sector Explorer ({data.user_email or 'Public'})", 
+                connector_type="esp32",
+                lat=data.lat or 0.0, lon=data.lon or 0.0, 
+                status="online", last_seen=current_ts
             )
             db.add(device)
             db.commit()
+            db.refresh(device)
         else:
             device.last_seen = current_ts
             device.status = "online"
+            # Update location if provided
+            if data.lat and data.lon:
+                device.lat = data.lat
+                device.lon = data.lon
+            db.commit()
 
         # 3. Store Filtered Data
         mq_norm = min(100, max(0, (mq_cleaned["smoothed"] - 200) / 6))
@@ -377,8 +431,9 @@ async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
         db.add(measurement)
         db.commit()
         
-        # 5. Alert Check
-        check_alerts(db, device, measurement)
+        # 5. Alert Check (OFFLOADED TO BACKGROUND TO PREVENT EVENT LOOP BLOCKING)
+        # Using a wrapper that creates its own session as 'db' here will be closed when request ends
+        background_tasks.add_task(check_alerts_wrapper, device.id, measurement.id, data.user_email)
         
         # 4. WebSocket Broadcast
         payload = {
@@ -406,10 +461,17 @@ async def receive_iot_data(data: IoTSensorData, db: Session = Depends(get_db)):
                 "z_score": mq_cleaned["z_score"]
             },
             "mq_index": mq_norm,
-            "pressure": data.pressure
+            "pressure": data.pressure,
+            "wind_speed": data.wind_speed
         }
         await manager.broadcast(payload, "ESP32_MAIN")
+        
+        # Save wind speed to DB
+        measurement.wind_speed = data.wind_speed
+        db.commit()
+        
         return {"status": "ok", "message": "Data processed successfully"}
+
         
     except Exception as e:
         logger.error(f"IoT Data Error: {e}")
@@ -439,6 +501,13 @@ async def get_filtered_iot_data(db: Session = Depends(get_db)):
         aqi_result.get("aqi"), aqi_result.get("dominant_pollutant_key")
     )
     
+    # Calculate Rainfall Prediction
+    prediction = weather_service.calculate_rainfall_prediction(
+        reading.humidity, 
+        reading.wind_speed or 0.0, 
+        reading.pressure or 1013.0
+    )
+    
     return {
         "status": "ok",
         "timestamp": reading.timestamp.isoformat(),
@@ -448,7 +517,8 @@ async def get_filtered_iot_data(db: Session = Depends(get_db)):
             "humidity": reading.humidity,
             "pm25": reading.pm2_5,
             "mq_smoothed": reading.pm10,
-            "pressure": reading.pressure
+            "pressure": reading.pressure,
+            "wind_speed": reading.wind_speed or 0.0
         },
         "air_quality": {
             "aqi": aqi_result.get("aqi"),
@@ -456,8 +526,10 @@ async def get_filtered_iot_data(db: Session = Depends(get_db)):
             "color": aqi_result.get("color"),
             "dominant_pollutant": aqi_result.get("dominant_pollutant")
         },
-        "health": health_recs
+        "health": health_recs,
+        "weather": prediction
     }
+
 
 # --- WebSocket Endpoint ---
 @app.websocket("/ws/stream/{device_id}")
@@ -521,12 +593,18 @@ async def get_pro_data(lat: float = 17.3850, lon: float = 78.4867, city: str = N
 
 # --- Alert Settings API ---
 @app.get("/api/settings/alerts", response_model=schemas.AlertSettingsResponse, tags=["Settings"])
-def get_alert_settings(db: Session = Depends(get_db)):
-    # Return first active setting or default
-    settings = db.query(models.AlertSettings).first()
+def get_alert_settings(email: Optional[str] = None, db: Session = Depends(get_db)):
+    # Return user-specific setting or first active or default
+    settings = None
+    if email:
+        settings = db.query(models.AlertSettings).filter(models.AlertSettings.user_email == email).first()
+    
     if not settings:
-        # Create default
-        settings = models.AlertSettings()
+        settings = db.query(models.AlertSettings).first()
+        
+    if not settings:
+        # Create absolute default if DB empty
+        settings = models.AlertSettings(user_email=email)
         db.add(settings)
         db.commit()
         db.refresh(settings)
@@ -534,8 +612,11 @@ def get_alert_settings(db: Session = Depends(get_db)):
 
 @app.post("/api/settings/alerts", response_model=schemas.AlertSettingsResponse, tags=["Settings"])
 def update_alert_settings(settings: schemas.AlertSettingsCreate, db: Session = Depends(get_db)):
-    # Update existing or create new
-    db_settings = db.query(models.AlertSettings).first()
+    # Update existing for this user or create new
+    db_settings = db.query(models.AlertSettings).filter(
+        models.AlertSettings.user_email == settings.user_email
+    ).first()
+    
     if not db_settings:
         db_settings = models.AlertSettings(**settings.dict())
         db.add(db_settings)

@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 load_dotenv() # Load from .env file for local dev
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "data", "iot_system.db")
+DB_PATH = os.path.join(BASE_DIR, "iot_system.db")
+
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
 # Fix for some PaaS (like Heroku/Render) that provide "postgres://" instead of "postgresql://"
@@ -20,8 +21,15 @@ if "sqlite" in SQLALCHEMY_DATABASE_URL:
         SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
     )
 else:
-    # Managed Postgres on Render often requires SSL, usually handled by libpq, but good to be standard
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    # Optimized for Supabase/Remote Postgres
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

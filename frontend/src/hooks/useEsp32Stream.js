@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabaseClient';
 
-// MODE: 'light' now fetches from our Proxy API (Blynk Bridge)
 // PRO MODE: Fetches real-time Satellite/Weather Data
-export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867]) => {
+export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867], userEmail = null) => {
     // State
     const [stream, setStream] = useState({
         connected: false,
@@ -30,9 +29,10 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                 const [lat, lon] = coordinates;
                 // Parallel Fetch: Weather + Air Quality
                 const [weatherRes, aqiRes] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`),
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m`),
                     fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,us_aqi`)
                 ]);
+
 
                 const weather = await weatherRes.json();
                 const aqi = await aqiRes.json();
@@ -41,11 +41,13 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                     realBaseRef.current = {
                         temp: weather.current.temperature_2m,
                         hum: weather.current.relative_humidity_2m,
+                        wind: weather.current.windspeed_10m,
                         aqi: aqi.current.pm2_5, // Mass Concentration
                         loaded: true
                     };
                     console.log("Updated Real Baseline:", realBaseRef.current);
                 }
+
             } catch (err) {
                 console.error("Failed to fetch real data:", err);
             }
@@ -107,29 +109,38 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
 
                 // --- SENSOR SIMULATION ENGINE ---
                 // 1. HARWARE BIAS (Simulating Uncalibrated Sensors)
-                const BIAS = { temp: 2.1, hum: -4.5, aqi: 15 };
+                const BIAS = { temp: 2.1, hum: -4.5, aqi: 15, wind: 1.2 };
+
 
                 // Base Values (Ground Truth from API)
                 const truthTemp = base.loaded ? base.temp : (24 + Math.sin(now / 10000) * 2);
                 const truthHum = base.loaded ? base.hum : (45 + Math.sin(now / 20000) * 5);
+                const truthWind = base.loaded ? base.wind : (5 + Math.sin(now / 30000) * 2);
                 const truthAqi = base.loaded ? base.aqi : (12 + Math.cos(now / 15000) * 3);
+
 
                 // Raw Readings = Truth + Bias + Noise
                 const rawTemp = truthTemp + BIAS.temp + ((Math.random() - 0.5) * 0.5);
                 const rawHum = truthHum + BIAS.hum + ((Math.random() - 0.5) * 1.0);
+                const rawWind = truthWind + BIAS.wind + ((Math.random() - 0.5) * 0.8);
                 const rawAqi = truthAqi + BIAS.aqi + ((Math.random() - 0.5) * 2.0);
+
 
                 // 2. CALIBRATION (Software Correction)
                 const calTemp = rawTemp - BIAS.temp;
                 const calHum = rawHum - BIAS.hum;
+                const calWind = rawWind - BIAS.wind;
                 const calAqi = rawAqi - BIAS.aqi;
+
 
                 // 3. KALMAN FILTER (Noise Reduction)
                 const lastPacket = bufferRef.current[bufferRef.current.length - 1];
 
                 const filteredTemp = lastPacket ? (lastPacket.temperature * 0.85 + calTemp * 0.15) : calTemp;
                 const filteredHum = lastPacket ? (lastPacket.humidity * 0.85 + calHum * 0.15) : calHum;
+                const filteredWind = lastPacket ? (lastPacket.wind_speed * 0.85 + calWind * 0.15) : calWind;
                 const filteredAqi = lastPacket ? (lastPacket.mq_ppm * 0.85 + calAqi * 0.15) : calAqi;
+
 
                 const packet = {
                     ts: now,
@@ -148,9 +159,15 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                     raw_mq_ppm: Number(rawAqi.toFixed(0)),
                     mq_raw: 400 + Math.random() * 50,
 
+                    // Wind Speed
+                    wind_speed: Number(filteredWind.toFixed(1)),
+                    raw_wind_speed: Number(rawWind.toFixed(1)),
+
                     trustScore: 99.9,
-                    deviceId: "ESP32-S4-PRO-SAT"
+                    deviceId: "ESP32_MAIN"
                 };
+
+
 
                 // --- CLOUD PERSISTENCE & ALERTS ---
                 const localTime = new Date(now - (new Date().getTimezoneOffset() * 60000)).toISOString();
@@ -166,6 +183,8 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                                 raw_humidity: packet.raw_humidity,
                                 air_quality: packet.mq_ppm,
                                 raw_air_quality: packet.raw_mq_ppm,
+                                wind_speed: packet.wind_speed,
+                                raw_wind_speed: packet.raw_wind_speed,
                                 created_at: localTime
                             }
                         ]);
@@ -186,9 +205,14 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                                 humidity: Number(filteredHum.toFixed(2)),
                                 pm25: Number(filteredAqi.toFixed(2)),
                                 pressure: 1013,
-                                mq_raw: packet.mq_raw
+                                mq_raw: packet.mq_raw,
+                                wind_speed: Number(filteredWind.toFixed(2)),
+                                user_email: userEmail,
+                                lat: coordinates[0],
+                                lon: coordinates[1]
                             })
                         });
+
                         if (!response.ok) {
                             const errData = await response.json();
                             console.warn("Backend Alert Sync Warning:", errData.detail);
@@ -339,7 +363,10 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867])
                                         humidity: Number(filtered.h.toFixed(2)),
                                         pm25: Number(filtered.p.toFixed(2)),
                                         pressure: Number(json.pressure || 1013),
-                                        mq_raw: Number(json.mq_raw || json.gas || 0)
+                                        mq_raw: Number(json.mq_raw || json.gas || 0),
+                                        user_email: userEmail,
+                                        lat: coordinates[0],
+                                        lon: coordinates[1]
                                     })
                                 });
                             } catch (err) {

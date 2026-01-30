@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime as dt
 import random
 import string
 print(f"LOADING AUTH_V2 FROM {__file__}")
@@ -25,17 +25,15 @@ from google.auth.transport import requests
 
 
 def get_db():
-    print("DEBUG: get_db called")
+    print(f">>> TRACE: get_db starting at {dt.now().isoformat()}")
+    db = database.SessionLocal()
     try:
-        db = database.SessionLocal()
-        print("DEBUG: SessionLocal created")
         yield db
-    except Exception as e:
-        print(f"DEBUG: get_db CRASH: {e}")
-        raise e
     finally:
-        print("DEBUG: get_db closing")
+        print(f">>> TRACE: get_db closing at {dt.now().isoformat()}")
         db.close()
+
+
 
 @router.get("/auth/test-ping")
 def test_ping():
@@ -82,15 +80,53 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    print("DEBUG: STUBBED LOGIN CALLED")
+    t0 = dt.now()
+    print(f">>> TRACE: Login attempt for {form_data.username} at {t0.isoformat()}")
+    
+    # 1. Fetch User
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    t1 = dt.now()
+    print(f">>> TRACE: User lookup took {(t1-t0).total_seconds()}s")
+    
+    if not user:
+        print(f"DEBUG: User {form_data.username} not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 2. Verify Password
+    print(f">>> TRACE: Verifying password for {user.email}")
+    if not security.verify_password(form_data.password, user.hashed_password):
+        t2 = dt.now()
+        print(f">>> TRACE: Password verification FAILED after {(t2-t1).total_seconds()}s")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    t2 = dt.now()
+    print(f">>> TRACE: Password verification success in {(t2-t1).total_seconds()}s")
+
+    # 3. Generate Token
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    t3 = dt.now()
+    print(f">>> TRACE: Token generation took {(t3-t2).total_seconds()}s")
+    
+    print(f">>> TRACE: Login success for {user.email}. Total time: {(t3-t0).total_seconds()}s")
     return {
-        "access_token": "stubbed_token_123", 
+        "access_token": access_token, 
         "token_type": "bearer",
         "redirect": "/dashboard",
-        "plan": "pro",
-        "is_verified": True,
-        "user_name": "Stubbed User"
+        "plan": user.plan,
+        "is_verified": user.is_verified,
+        "user_name": f"{user.first_name} {user.last_name}"
     }
+
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

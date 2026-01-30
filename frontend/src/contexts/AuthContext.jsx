@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import API_BASE_URL from '../config';
 
 const AuthContext = createContext({});
 
@@ -51,13 +52,13 @@ export const AuthProvider = ({ children }) => {
 
             if (token) {
                 try {
-                    console.log("AuthContext: Fetching /me from", import.meta.env.VITE_API_BASE_URL);
+                    console.log("AuthContext: Fetching /me from", API_BASE_URL);
 
                     // Timeout logic
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s Timeout
 
-                    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/me`, {
+                    const response = await fetch(`${API_BASE_URL}/me`, {
                         headers: { 'Authorization': `Bearer ${token}` },
                         signal: controller.signal
                     });
@@ -88,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     // --- REAL AUTHENTICATION ---
 
     // Login
-    const login = async (email, password) => {
+    const login = async (email, password, locationData = {}) => {
         try {
             const formData = new FormData();
             formData.append('username', email); // OAuth2 expects 'username'
@@ -98,8 +99,8 @@ export const AuthProvider = ({ children }) => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s Timeout
 
-            console.log("AuthContext: Login POST to", `${import.meta.env.VITE_API_BASE_URL}/token`);
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/token`, {
+            console.log("AuthContext: Login POST to", `${API_BASE_URL}/token`);
+            const response = await fetch(`${API_BASE_URL}/token`, {
                 method: 'POST',
                 body: formData,
                 signal: controller.signal
@@ -123,7 +124,10 @@ export const AuthProvider = ({ children }) => {
             setUserProfile({
                 plan: data.plan,
                 first_name: data.user_name.split(' ')[0],
-                last_name: data.user_name.split(' ')[1] || ''
+                last_name: data.user_name.split(' ')[1] || '',
+                location_lat: locationData.lat,
+                location_lon: locationData.lon,
+                location_name: locationData.name
             });
 
             return { data, error: null };
@@ -151,7 +155,7 @@ export const AuthProvider = ({ children }) => {
                 location_lon: extraData.location_lon
             };
 
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/register`, {
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

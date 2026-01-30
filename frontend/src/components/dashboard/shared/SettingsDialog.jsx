@@ -1,43 +1,51 @@
 import React from 'react';
-import { X, Bell, Shield, Moon, Wifi } from 'lucide-react';
+import { X, Bell, Shield, Moon, Wifi, Wind } from 'lucide-react';
+import API_BASE_URL from '../../../config';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const SettingsDialog = ({ isOpen, onClose }) => {
-    const [email, setEmail] = React.useState('skanduri5@gitam.in');
+    const { currentUser } = useAuth();
     const [tempThresh, setTempThresh] = React.useState(45);
     const [humMin, setHumMin] = React.useState(20);
     const [humMax, setHumMax] = React.useState(80);
     const [pm25Thresh, setPm25Thresh] = React.useState(150);
+    const [windThresh, setWindThresh] = React.useState(30);
     const [loading, setLoading] = React.useState(false);
     const [saved, setSaved] = React.useState(false);
 
     React.useEffect(() => {
-        if (isOpen) {
-            // Fetch settings
-            fetch('http://localhost:8000/api/settings/alerts')
+        if (isOpen && currentUser?.email) {
+            // Fetch settings for CURRENT user
+            const url = new URL(`${API_BASE_URL}/api/settings/alerts`);
+            url.searchParams.append('email', currentUser.email);
+
+            fetch(url)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.user_email) setEmail(data.user_email);
                     if (data.temp_threshold) setTempThresh(data.temp_threshold);
                     if (data.humidity_min) setHumMin(data.humidity_min);
                     if (data.humidity_max) setHumMax(data.humidity_max);
                     if (data.pm25_threshold) setPm25Thresh(data.pm25_threshold);
+                    if (data.wind_threshold) setWindThresh(data.wind_threshold);
                 })
                 .catch(err => console.error("Failed to load settings:", err));
         }
-    }, [isOpen]);
+    }, [isOpen, currentUser]);
 
     const handleSave = async () => {
+        if (!currentUser?.email) return;
         setLoading(true);
         try {
-            await fetch('http://localhost:8000/api/settings/alerts', {
+            await fetch(`${API_BASE_URL}/api/settings/alerts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_email: email,
+                    user_email: currentUser.email,
                     temp_threshold: parseFloat(tempThresh),
                     humidity_min: parseFloat(humMin),
                     humidity_max: parseFloat(humMax),
                     pm25_threshold: parseFloat(pm25Thresh),
+                    wind_threshold: parseFloat(windThresh),
                     is_active: true
                 })
             });
@@ -69,14 +77,10 @@ const SettingsDialog = ({ isOpen, onClose }) => {
                             <Bell size={14} /> Alert Configuration
                         </h3>
 
-                        <div className="space-y-1">
-                            <label className="text-xs text-gray-400">Recipient Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
-                            />
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-3 mb-4">
+                            <p className="text-[10px] text-emerald-500 font-bold uppercase mb-1">Authenticated Account</p>
+                            <p className="text-sm text-white font-medium">{currentUser?.email || 'System Default'}</p>
+                            <p className="text-[10px] text-gray-400 mt-2 italic">* Security alerts are automatically routed to your verified login email.</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -119,6 +123,18 @@ const SettingsDialog = ({ isOpen, onClose }) => {
                                     className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 font-bold flex items-center gap-1">
+                                <Wind size={12} className="text-blue-400" /> Max Wind Speed (km/h)
+                            </label>
+                            <input
+                                type="number"
+                                value={windThresh}
+                                onChange={(e) => setWindThresh(e.target.value)}
+                                className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none"
+                            />
                         </div>
                     </div>
 

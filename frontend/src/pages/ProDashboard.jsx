@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Legend } from 'recharts';
-import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle, Wind, Cloud, Settings } from 'lucide-react';
+import { Activity, Droplets, Thermometer, Zap, Shield, User, CheckCircle, Wind, Cloud, Settings, Info } from 'lucide-react';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
 import { supabase } from '../config/supabaseClient';
@@ -10,14 +11,22 @@ import Profile from './Profile';
 import SettingsDialog from '../components/dashboard/shared/SettingsDialog';
 
 const ProDashboard = ({ onToggle }) => {
-    const [mapPosition, setMapPosition] = useState([17.3850, 78.4867]); // Default: Hyderabad
-    const { userProfile } = useAuth();
-    // Pro Mode relies on Supabase and Real Coordinates
-    const { history: sensorData } = useEsp32Stream('pro', mapPosition);
+    const { currentUser, userProfile } = useAuth();
+
+    // Default to Hyderabad, but use profile location if available
+    const initialPos = (userProfile?.location_lat && userProfile?.location_lon)
+        ? [userProfile.location_lat, userProfile.location_lon]
+        : [17.3850, 78.4867];
+
+    const [mapPosition, setMapPosition] = useState(initialPos);
+
+    // Pro Mode relies on Supabase and Real Coordinates + User Email for Personalized Alerts
+    const { history: sensorData } = useEsp32Stream('pro', mapPosition, currentUser?.email);
 
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [weatherPrediction, setWeatherPrediction] = useState({ prediction: 'Calculating...', severity: 'none' });
 
     // Derived Data
     const latestData = useMemo(() => (sensorData && sensorData.length > 0) ? sensorData[sensorData.length - 1] : {}, [sensorData]);
@@ -29,6 +38,51 @@ const ProDashboard = ({ onToggle }) => {
 
     const aqi = useMemo(() => latestData.mq_ppm?.toFixed(0) || '--', [latestData]);
     const rawAqi = useMemo(() => latestData.raw_mq_ppm?.toFixed(0) || '--', [latestData]);
+
+    const wind = useMemo(() => latestData.wind_speed?.toFixed(1) || '--', [latestData]);
+    const rawWind = useMemo(() => latestData.raw_wind_speed?.toFixed(1) || '--', [latestData]);
+
+
+    // Local Prediction Logic (Fallback)
+    const calculateLocalPrediction = (h, w) => {
+        let score = 0;
+        if (h > 85) score += 5; else if (h > 75) score += 3;
+        if (w > 10) score += 3; else if (w > 5) score += 2;
+
+        if (score >= 8) return { prediction: "Heavy Rain Probable", severity: "high" };
+        if (score >= 5) return { prediction: "Rain Likely", severity: "medium" };
+        if (score >= 3) return { prediction: "Showers Possible", severity: "low" };
+        return { prediction: "No Rain Predicted", severity: "none" };
+    };
+
+    // Fetch Weather Prediction from Backend
+    React.useEffect(() => {
+        const fetchWeather = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/filtered/latest`);
+                const data = await res.json();
+                if (data.weather) {
+                    setWeatherPrediction(data.weather);
+                } else if (latestData.humidity) {
+                    // Fallback to local prediction
+                    setWeatherPrediction(calculateLocalPrediction(latestData.humidity, latestData.wind_speed || 0));
+                }
+            } catch (err) {
+                if (latestData.humidity) {
+                    setWeatherPrediction(calculateLocalPrediction(latestData.humidity, latestData.wind_speed || 0));
+                }
+            }
+        };
+        fetchWeather();
+        const interval = setInterval(fetchWeather, 10000);
+        return () => clearInterval(interval);
+    }, [latestData.humidity]);
+
+
+
+
+
+
 
     const StatCard = ({ title, value, rawValue, unit, icon: Icon, color = "amber" }) => (
         <div className={`glass-panel p-6 border-l-4 border-l-${color}-500 relative overflow-hidden group bg-slate-900/40`}>
@@ -50,7 +104,31 @@ const ProDashboard = ({ onToggle }) => {
         </div>
     );
 
+    const WeatherCard = ({ prediction, severity }) => {
+        const config = {
+            high: { color: 'red', icon: Cloud, label: 'SEVERE' },
+            medium: { color: 'amber', icon: Cloud, label: 'MODERATE' },
+            low: { color: 'blue', icon: Cloud, label: 'LOW' },
+            none: { color: 'emerald', icon: Shield, label: 'NONE' }
+        };
+        const active = config[severity] || config.none;
+        const Icon = active.icon;
+
+        return (
+            <div className={`glass-panel p-6 border-l-4 border-l-${active.color}-500 relative overflow-hidden group bg-slate-900/40`}>
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Icon size={64} className={`text-${active.color}-500`} /></div>
+                <p className={`text-${active.color}-500/80 text-xs font-bold uppercase mb-2`}>Weather Outlook</p>
+                <h3 className="text-xl font-black text-white leading-tight uppercase">{prediction}</h3>
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-0.5 bg-black/40 border border-slate-700 rounded-full">
+                    <div className={`w-2 h-2 rounded-full bg-${active.color}-500 animate-pulse`}></div>
+                    <span className="text-[10px] font-bold text-slate-400">PROBABILITY: {active.label}</span>
+                </div>
+            </div>
+        );
+    };
+
     const CustomTooltip = ({ active, payload, label }) => {
+
         if (active && payload && payload.length) {
             return (
                 <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl text-xs font-mono">
@@ -93,14 +171,18 @@ const ProDashboard = ({ onToggle }) => {
 
     const renderOverview = () => (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+
                 <StatCard title="Core Temp" value={temp} rawValue={rawTemp} unit="°C" icon={Thermometer} color="amber" />
                 <StatCard title="Humidity" value={hum} rawValue={rawHum} unit="%" icon={Droplets} color="blue" />
-                <StatCard title="Air Quality" value={aqi} rawValue={rawAqi} unit="PM2.5" icon={Wind} color="emerald" />
-                <StatCard title="System Status" value="ONLINE" unit="" icon={Activity} color="purple" />
+                <StatCard title="Air Quality" value={aqi} rawValue={rawAqi} unit="PM2.5" icon={Activity} color="emerald" />
+                <StatCard title="Wind Speed" value={wind} rawValue={rawWind} unit="km/h" icon={Wind} color="cyan" />
+                <WeatherCard prediction={weatherPrediction.prediction} severity={weatherPrediction.severity} />
+                <StatCard title="System Status" value="ONLINE" unit="" icon={Shield} color="purple" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 <KalmanChart
                     title="Temperature Analysis"
                     rawKey="raw_temperature"
@@ -120,6 +202,13 @@ const ProDashboard = ({ onToggle }) => {
                     rawKey="raw_mq_ppm"
                     filteredKey="mq_ppm"
                     color="#10b981"
+                    icon={Activity}
+                />
+                <KalmanChart
+                    title="Wind Speed Analysis"
+                    rawKey="raw_wind_speed"
+                    filteredKey="wind_speed"
+                    color="#06b6d4"
                     icon={Wind}
                 />
             </div>
@@ -127,6 +216,7 @@ const ProDashboard = ({ onToggle }) => {
     );
 
     return (
+
         <div className="flex h-screen w-full bg-[#050302] overflow-hidden font-outfit">
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/95 border-r border-amber-500/20 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-20 lg:hover:w-64 group flex flex-col items-center py-8`}>
                 <div className="mb-12"><Shield className="text-amber-500" size={32} /></div>
@@ -165,6 +255,8 @@ const ProDashboard = ({ onToggle }) => {
                         <div className="flex items-center gap-2 px-4 py-1 bg-amber-500/10 border border-amber-500/40 rounded-full text-amber-400 text-xs font-bold">
                             <CheckCircle size={14} /> SYSTEM OPTIMAL
                         </div>
+
+
                         <button
                             onClick={() => setIsSettingsOpen(true)}
                             className="p-2 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors"

@@ -8,7 +8,9 @@ create table public.sensor_readings (
   humidity numeric,
   raw_humidity numeric,
   air_quality numeric,
-  raw_air_quality numeric
+  raw_air_quality numeric,
+  wind_speed numeric,
+  raw_wind_speed numeric
 );
 
 -- 2. Enable Row Level Security (Security best practice)

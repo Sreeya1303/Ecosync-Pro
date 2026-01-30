@@ -59,6 +59,8 @@ class UserCreate(UserBase):
     last_name: Optional[str] = "Null"
     plan: Optional[str] = "lite"
     location_name: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lon: Optional[float] = None
 
 class UserProfileUpdate(BaseModel):
     first_name: str
@@ -73,6 +75,8 @@ class UserResponse(UserBase):
     last_name: Optional[str]
     mobile: Optional[str]
     location_name: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lon: Optional[float] = None
     plan: str
     is_verified: bool
 
@@ -169,6 +173,7 @@ class AlertSettingsCreate(BaseModel):
     humidity_min: float
     humidity_max: float
     pm25_threshold: float
+    wind_threshold: Optional[float] = 30.0
     is_active: bool = True
 
 class AlertSettingsResponse(AlertSettingsCreate):

@@ -38,6 +38,8 @@ class User(Base):
     
     # Persistent Dashboard Location
     location_name = Column(String, nullable=True)
+    location_lat = Column(Float, nullable=True)
+    location_lon = Column(Float, nullable=True)
     
     # Verification
     is_verified = Column(Boolean, default=False)
@@ -113,6 +115,7 @@ class AlertSettings(Base):
     humidity_min = Column(Float, default=20.0)
     humidity_max = Column(Float, default=80.0)
     pm25_threshold = Column(Float, default=150.0)
+    wind_threshold = Column(Float, default=30.0) # km/h
     
     is_active = Column(Boolean, default=True)
 
