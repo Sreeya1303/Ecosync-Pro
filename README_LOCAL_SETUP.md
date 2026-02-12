@@ -125,8 +125,8 @@ Ecosync/
 ## 🎯 Default Login Credentials
 
 After first startup, an admin user is created:
-- **Email:** admin@ecosync.local
-- **Password:** admin123
+- **Email:** gitams4@gmail.com
+- **Password:** Admin123@#$
 
 You can create new users via the registration page.
 

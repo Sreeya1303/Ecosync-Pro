@@ -13,15 +13,17 @@ def create_admin_user():
         if existing:
             # Update password if exists (ensures it matches docs even if DB persisted)
             existing.hashed_password = security.get_password_hash(password)
+            existing.is_verified = True
             db.commit()
-            print(f"✅ Admin user {email} updated with correct password.")
+            print(f"✅ Admin user {email} updated with correct password and verified.")
         else:
             print(f"Creating new Admin user: {email}")
             hashed_pw = security.get_password_hash(password)
             new_user = models.User(
                 email=email,
                 hashed_password=hashed_pw,
-                is_active=True
+                is_active=True,
+                is_verified=True
             )
             db.add(new_user)
             db.commit()

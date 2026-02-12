@@ -78,6 +78,7 @@ class SensorData(Base):
     pm10 = Column(Float)
     no2 = Column(Float)
     solar_radiation = Column(Float)
+    motion = Column(Boolean, default=False)
     
     # Processed / ML features
     kalman_temp = Column(Float) 

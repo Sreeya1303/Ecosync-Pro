@@ -1,9 +1,92 @@
-import React, { useState, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
-import { Bell, Wifi, Activity, Droplets, Thermometer, Wind, Zap, Map as MapIcon, Newspaper, User, Menu, X, Leaf, Shield, Cpu, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from 'recharts';
+import {
+    Activity, Droplets, Thermometer, Wind, AlertTriangle, Wifi, Zap,
+    ShieldCheck, Eye, Activity as MotionIcon, HeartPulse, TrendingUp,
+    History, ChevronUp, ChevronDown, Download, Filter, Search, MoreHorizontal,
+    Leaf, Newspaper, ExternalLink, Menu, X, Cpu, Shield
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
 import NewsComponent from '../components/NewsComponent';
+import API_BASE_URL from '../config';
+
+// --- Sub-components ---
+
+const Sparkline = ({ data, dataKey, color }) => (
+    <div className="h-10 w-24">
+        <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+                <Area
+                    type="monotone"
+                    dataKey={dataKey}
+                    stroke={color}
+                    fill={`${color}33`}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                />
+            </AreaChart>
+        </ResponsiveContainer>
+    </div>
+);
+
+const StatCard = ({ title, value, unit, icon: Icon, color, trendData, dataKey }) => {
+    const isRising = trendData && trendData.length > 1 && trendData[trendData.length - 1][dataKey] > trendData[trendData.length - 2][dataKey];
+
+    return (
+        <div className="glass-panel p-3 relative overflow-hidden group border-l-4" style={{ borderColor: color }}>
+            <div className="flex justify-between items-start relative z-10 transition-transform group-hover:scale-[1.02] duration-300">
+                <div className="space-y-1">
+                    <p className="text-slate-500 text-[10px] uppercase font-black tracking-[0.2em]">{title}</p>
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="text-3xl font-black text-white font-mono tracking-tighter">
+                            {value}
+                        </h3>
+                        <span className="text-xs text-slate-500 font-bold uppercase">{unit}</span>
+                    </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    <div className={`p-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-white shadow-xl group-hover:shadow-${color}/20`}>
+                        <Icon size={18} style={{ color }} />
+                    </div>
+                    <div className={`flex items-center gap-0.5 text-[10px] font-black ${isRising ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {isRising ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {isRising ? 'RISING' : 'STABLE'}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between">
+                <Sparkline data={trendData || []} dataKey={dataKey} color={color} />
+                <div className="text-[9px] font-mono text-slate-600 uppercase">Live Pulse Log</div>
+            </div>
+
+            <div className="absolute -bottom-10 -right-10 w-32 h-32 blur-3xl opacity-10 group-hover:opacity-20 transition-opacity"
+                style={{ backgroundColor: color }} />
+        </div>
+    );
+};
+
+const IndustrialPanel = ({ title, children, icon: Icon, color = "#10b981", badge }) => (
+    <div className="glass-panel p-3 border-slate-800/50 flex flex-col hover:border-slate-700/50 transition-colors">
+        <div className="flex justify-between items-center mb-2">
+            <h3 className="text-sm font-black text-slate-300 flex items-center gap-2 uppercase tracking-widest">
+                <Icon size={16} style={{ color }} /> {title}
+            </h3>
+            {badge && (
+                <span className="px-2 py-0.5 rounded text-[9px] font-black bg-slate-900 border border-slate-800 text-slate-500 tracking-tighter uppercase">
+                    {badge}
+                </span>
+            )}
+        </div>
+        <div className="flex-1">
+            {children}
+        </div>
+    </div>
+);
+
+// --- Main Page Component ---
 
 const LightDashboard = ({ onToggle }) => {
     const { logout, userProfile, currentUser } = useAuth();
@@ -11,348 +94,365 @@ const LightDashboard = ({ onToggle }) => {
 
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isDeviceConfigOpen, setIsDeviceConfigOpen] = useState(false);
+    const [selectedMetric, setSelectedMetric] = useState('temperature');
 
-    // Memoized Data
-    const latestData = useMemo(() => (sensorData && sensorData.length > 0) ? sensorData[sensorData.length - 1] : {}, [sensorData]);
-    const temp = useMemo(() => latestData.temperature?.toFixed(1) || '0', [latestData]);
-    const hum = useMemo(() => latestData.humidity?.toFixed(1) || '0', [latestData]);
-    const press = useMemo(() => latestData.pressure?.toFixed(0) || '0', [latestData]);
-    const gas = useMemo(() => latestData.pm25?.toFixed(0) || '0', [latestData]);
+    const [industrialData, setIndustrialData] = useState({
+        safetyIndex: { risk_level: 'SAFE', color: 'emerald', reason: 'Analyzing...', details: {} },
+        historyComp: { current: {}, normal: {} },
+        motion: { daily_count: 0, unusual_activity: false, working_hours: '09:00 - 18:00' },
+        health: { temperature: 'OK', humidity: 'OK', gas: 'OK' },
+        predictions: { predicted_temp_10m: 0, predicted_gas_10m: 0, temperature_trend: 'stable' },
+        explainableAlerts: []
+    });
 
-    // Stat Card
-    const StatCard = ({ title, value, unit, icon: Icon, color }) => (
-        <div className={`p-6 rounded-xl border border-slate-800 bg-slate-900/50 flex flex-col items-center text-center hover:border-${color}-500/50 transition-colors`}>
-            <div className={`p-3 rounded-full mb-3 bg-${color}-500/10 text-${color}-400`}>
-                <Icon size={24} />
-            </div>
-            <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mb-1">{title}</p>
-            <h3 className="text-3xl font-black text-white font-mono tracking-tighter">
-                {value} <span className="text-sm text-slate-500 font-normal">{unit}</span>
-            </h3>
-        </div>
-    );
+    const fetchIndustrialData = async () => {
+        try {
+            const endpoints = [
+                '/api/industrial/safety-index',
+                '/api/industrial/historical-comparison',
+                '/api/industrial/motion-stats',
+                '/api/industrial/sensor-health',
+                '/api/industrial/predictions',
+                '/api/industrial/alerts/explainable'
+            ];
+            const responses = await Promise.all(endpoints.map(e => fetch(`${API_BASE_URL}${e}`)));
+            const [safetyIndex, historyComp, motion, health, predictions, explainableAlerts] = await Promise.all(responses.map(r => r.json()));
+
+            setIndustrialData({ safetyIndex, historyComp, motion, health, predictions, explainableAlerts });
+        } catch (e) {
+            console.error("Industrial Data Fetch Error:", e);
+        }
+    };
+
+    useEffect(() => {
+        fetchIndustrialData();
+        const interval = setInterval(fetchIndustrialData, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const latestData = useMemo(() => {
+        return (sensorData && sensorData.length > 0) ? sensorData[sensorData.length - 1] : (latestReading || {});
+    }, [sensorData, latestReading]);
+
+    // CSV Export Utility
+    const exportToCSV = () => {
+        const { explainableAlerts } = industrialData;
+        if (explainableAlerts.length === 0) return;
+
+        const headers = ["Timestamp", "Message", "Reason", "Normal Temp", "Normal Gas"];
+        const rows = explainableAlerts.map(a => [
+            new Date(a.timestamp).toLocaleString(),
+            a.message,
+            a.reason,
+            a.current_context.normal_temp,
+            a.current_context.normal_gas
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `firecracker_safety_audit_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const { safetyIndex, historyComp, motion, health, predictions, explainableAlerts } = industrialData;
 
     const renderOverview = () => (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Device Connection Banner */}
-            {!connectionStatus && (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400 animate-pulse">
-                            <Cpu size={24} />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-white">Connect Your ESP32</h3>
-                            <p className="text-sm text-slate-400">Connect via USB to view real-time metrics on this dashboard.</p>
-                        </div>
+        <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+            {/* Main Risk Status Row */}
+            <div className={`p-6 rounded-2xl border-2 flex flex-col md:flex-row items-center gap-8 transition-all duration-700 shadow-2xl relative overflow-hidden bg-slate-950/50
+                            ${safetyIndex.color === 'red' ? 'border-red-500/40 bg-red-950/5' :
+                    safetyIndex.color === 'orange' ? 'border-orange-500/40 bg-orange-950/5' :
+                        'border-emerald-500/40 bg-emerald-950/5'}`}>
+
+                <div className="text-6xl animate-bounce duration-[3000ms]">
+                    {safetyIndex.risk_level === 'SAFE' ? '🟢' : safetyIndex.risk_level === 'MEDIUM RISK' ? '🟠' : '🔴'}
+                </div>
+                <div className="relative z-10 flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex justify-between">
+                        Industrial Safety Engine Status
+                        <span className="text-slate-600 font-mono">LATENCY: 42ms</span>
+                    </p>
+                    <h2 className={`text-5xl font-black font-mono tracking-tighter leading-none mb-2
+                                  ${safetyIndex.color === 'red' ? 'text-red-400' :
+                            safetyIndex.color === 'orange' ? 'text-orange-400' :
+                                'text-emerald-400'}`}>
+                        {safetyIndex.risk_level}
+                    </h2>
+                    <p className="text-sm text-slate-300 font-medium italic opacity-90">{safetyIndex.reason}</p>
+                </div>
+
+                {/* Hardware Status Node */}
+                <div className="hidden lg:flex flex-col items-end gap-3 border-l border-slate-800 pl-8">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${connectionStatus ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-red-500 animate-pulse'}`} />
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Hardware Link</span>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <button
-                            onClick={connectSerial}
-                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
-                        >
-                            <Zap size={18} /> PAIR DEVICE
+                    {!connectionStatus && (
+                        <button onClick={connectSerial} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-black text-[10px] font-black rounded-lg transition-all active:scale-95 uppercase tracking-widest">
+                            Initialize Pairing
                         </button>
-                        <button
-                            onClick={() => setIsDeviceConfigOpen(true)}
-                            className="px-6 py-3 bg-transparent border-2 border-emerald-500/30 hover:border-emerald-500 text-emerald-400 font-bold rounded-lg flex items-center gap-2 transition-all"
-                        >
-                            <Cpu size={18} /> SET UP DEVICE
-                        </button>
+                    )}
+                </div>
+
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Explainable Alert Alert */}
+            {explainableAlerts.length > 0 && safetyIndex.risk_level !== 'SAFE' && (
+                <div className="group relative overflow-hidden rounded-2xl border border-red-500/30 bg-red-500/5 p-6 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+                        <div className="flex items-center gap-4">
+                            <div className="p-4 bg-red-500/20 rounded-2xl shadow-inner border border-red-500/20">
+                                <AlertTriangle className="text-red-500 animate-pulse" size={28} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-red-100 uppercase tracking-tight">System Integrity Threat</h3>
+                                <p className="text-sm text-red-300/80 font-medium">XAI Reasoning: {explainableAlerts[0].reason}</p>
+                            </div>
+                        </div>
+                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+                            {[
+                                { label: 'Live Temp', val: `${latestData.temperature?.toFixed(1)}°C`, limit: '30°C' },
+                                { label: 'Baseline', val: `${explainableAlerts[0].current_context.normal_temp}°C` },
+                                { label: 'Live Gas', val: `${latestData.pm25 || latestData.mq_ppm || 0} PM`, limit: '120 PM' },
+                                { label: 'Normal Avg', val: `${explainableAlerts[0].current_context.normal_gas} PM` }
+                            ].map((s, idx) => (
+                                <div key={idx} className="bg-black/40 p-3 rounded-xl border border-red-500/10">
+                                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">{s.label}</p>
+                                    <p className="text-sm font-mono text-red-200">{s.val}</p>
+                                    {s.limit && <p className="text-[8px] text-red-500/60 mt-1 font-bold">LMT: {s.limit}</p>}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Metrics */}
+            {/* Real-time Stat Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Temperature" value={temp} unit="°C" icon={Thermometer} color="emerald" />
-                <StatCard title="Humidity" value={hum} unit="%" icon={Droplets} color="teal" />
-                <StatCard title="Pressure" value={press} unit="hPa" icon={Wind} color="cyan" />
-                <StatCard title="Air Quality" value={gas} unit="PM2.5" icon={Activity} color="green" />
-            </div>
-
-            {/* Analysis Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <AnalysisCard
-                    title="Temperature"
-                    unit="°C"
-                    data={sensorData}
-                    dataKey="temperature"
-                    rawKey="temp_raw"
-                    color="amber"
+                <StatCard
+                    title="Air Temperature"
+                    value={latestData.temperature?.toFixed(1)}
+                    unit="deg C"
                     icon={Thermometer}
+                    color="#06b6d4"
+                    trendData={sensorData}
+                    dataKey="temperature"
                 />
-                <AnalysisCard
-                    title="Humidity"
-                    unit="%"
-                    data={sensorData}
-                    dataKey="humidity"
-                    rawKey="hum_raw"
-                    color="blue"
-                    icon={Droplets}
-                />
-                <AnalysisCard
-                    title="Air Quality"
-                    unit="PM2.5"
-                    data={sensorData}
-                    dataKey="pm25"
-                    rawKey="pm25_raw"
-                    color="emerald"
+                <StatCard
+                    title="Explosive Hazard"
+                    value={(latestData.pm25 || latestData.mq_ppm || 0).toFixed(1)}
+                    unit="PM ppm"
                     icon={Activity}
+                    color="#f87171"
+                    trendData={sensorData}
+                    dataKey="pm25"
+                />
+                <StatCard
+                    title="Static Potential"
+                    value={latestData.humidity?.toFixed(1)}
+                    unit="RH %"
+                    icon={Droplets}
+                    color="#3b82f6"
+                    trendData={sensorData}
+                    dataKey="humidity"
+                />
+                <StatCard
+                    title="Barometric Index"
+                    value={latestData.pressure?.toFixed(0) || 1013}
+                    unit="hPa"
+                    icon={Wind}
+                    color="#a855f7"
+                    trendData={sensorData}
+                    dataKey="pressure"
                 />
             </div>
 
-            {/* Signal Processing Info */}
-            <div className="glass-panel p-6 border-l-4 border-l-emerald-500 bg-emerald-500/5">
-                <div className="flex gap-4 items-start">
-                    <Shield className="text-emerald-400 mt-1" size={24} />
-                    <div>
-                        <h4 className="text-white font-bold uppercase tracking-widest text-sm">Bio-Digital Signal Processing Active</h4>
-                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                            Incoming sensor signals are being processed through a real-time EMA (Exponential Moving Average) filter to ensure precision analysis and noise reduction from the hardware link.
-                        </p>
-                    </div>
+            {/* Middle Analytics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <IndustrialPanel title="Advanced Signal Processing" icon={TrendingUp} badge="Kalman L2 Filter">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-xs text-slate-500 font-medium italic">Monitoring raw vs processed signal for telemetry integrity.</p>
+                            <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="bg-slate-900 border border-slate-800 text-xs text-slate-300 p-2 rounded-lg outline-none cursor-pointer">
+                                <option value="temperature">Temperature Delta</option>
+                                <option value="pm25">Gas Concentration</option>
+                                <option value="humidity">Relative Humidity</option>
+                            </select>
+                        </div>
+                        <div className="h-44 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={sensorData}>
+                                    <defs>
+                                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <XAxis dataKey="timestamp" stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
+                                    <YAxis stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', borderRadius: '12px' }} />
+                                    <Area type="monotone" dataKey={selectedMetric} name="Live Sensor" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" dot={false} />
+                                    <Line type="monotone" dataKey={`${selectedMetric}_kalman`} name="Kalman Filter" stroke="#3b82f6" strokeDasharray="5 5" strokeWidth={2} dot={false} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </IndustrialPanel>
+
+                    <IndustrialPanel title="Historical Normal Comparison" icon={History} badge="7-Day Baseline">
+                        <div className="h-44 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={sensorData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <XAxis dataKey="timestamp" stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
+                                    <YAxis stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b' }} />
+                                    <Legend verticalAlign="top" align="right" />
+                                    <Line type="stepAfter" dataKey="temperature" name="Live (Today)" stroke="#10b981" strokeWidth={2} dot={false} />
+                                    <Line type="monotone" data={[...Array(sensorData.length)].map(() => ({ val: historyComp.normal?.temp || 25 }))} dataKey="val" name="Historical Avg" stroke="#94a3b8" strokeDasharray="10 10" dot={false} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </IndustrialPanel>
+                </div>
+
+                <div className="space-y-8">
+                    <IndustrialPanel title="Restricted Area Activity" icon={Eye} color="#f59e0b" badge="Zone C-4">
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-inner">
+                                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Events Today</p>
+                                    <p className="text-3xl font-mono text-amber-500 font-black">{motion.daily_count}</p>
+                                </div>
+                                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-inner">
+                                    <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Active State</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                        <span className="text-xs font-bold text-white uppercase tracking-tighter">Armed</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className={`p-4 rounded-xl border border-dashed transition-all duration-500 ${motion.unusual_activity ? 'bg-red-500/10 border-red-500/50' : 'bg-slate-900/40 border-slate-800'}`}>
+                                <p className={`text-[10px] font-black uppercase flex items-center gap-2 ${motion.unusual_activity ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <Shield size={12} /> {motion.unusual_activity ? 'SECURITY BREACH (OUT-OF-HOURS)' : 'Authorized Access Window'}
+                                </p>
+                                <p className="text-[10px] text-slate-600 mt-1 font-mono">Last motion: {motion.last_motion_time ? new Date(motion.last_motion_time).toLocaleTimeString() : 'None'}</p>
+                            </div>
+                        </div>
+                    </IndustrialPanel>
+
+                    <IndustrialPanel title="Hardware Diagnostic" icon={HeartPulse} color="#14b8a6">
+                        <div className="space-y-3">
+                            {Object.entries(health).filter(([k]) => k !== 'last_scan').map(([node, status]) => (
+                                <div key={node} className="p-3 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{node} Sensor</span>
+                                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${status === 'OK' ? 'border-emerald-500/20 text-emerald-400' : 'border-red-500/20 text-red-400'}`}>
+                                        {status}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </IndustrialPanel>
+
+                    <IndustrialPanel title="Safety Forecasting" icon={Zap} color="#3b82f6" badge="10M Predictive">
+                        <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl space-y-4">
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">10m Temp Forecast</span>
+                                <span className={`font-black uppercase flex items-center gap-1 ${predictions.temperature_trend === 'rising' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {predictions.predicted_temp_10m?.toFixed(1)}°C
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">10m Gas Forecast</span>
+                                <span className={`font-black uppercase flex items-center gap-1 ${predictions.gas_trend === 'rising' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {predictions.predicted_gas_10m?.toFixed(0)} ppm
+                                </span>
+                            </div>
+                        </div>
+                    </IndustrialPanel>
+                </div>
+            </div>
+
+            {/* Audit Log Table */}
+            <div className="glass-panel overflow-hidden border-slate-800">
+                <div className="p-6 bg-slate-900/40 flex justify-between items-center border-b border-slate-800">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2">
+                        <History size={18} className="text-emerald-500" /> Unit Security Audit Log
+                    </h3>
+                    <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                        <Download size={14} /> EXPORT CSV
+                    </button>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-[10px]">
+                        <thead className="bg-slate-900 text-slate-500 uppercase">
+                            <tr>
+                                <th className="px-6 py-4">Timestamp</th>
+                                <th className="px-6 py-4">Event</th>
+                                <th className="px-6 py-4">AI Reasoning</th>
+                                <th className="px-6 py-4 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/40">
+                            {explainableAlerts.map(alert => (
+                                <tr key={alert.id} className="hover:bg-slate-900/50">
+                                    <td className="px-6 py-4 text-slate-400">{new Date(alert.timestamp).toLocaleString()}</td>
+                                    <td className="px-6 py-4 font-bold text-slate-200">{alert.message}</td>
+                                    <td className="px-6 py-4 text-slate-500 italic">{alert.reason}</td>
+                                    <td className="px-6 py-4 text-right uppercase text-slate-600">Archived</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     );
 
     return (
-        <div className="flex h-screen w-full bg-[#022c22] overflow-hidden font-outfit">
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#022c22]/95 border-r border-emerald-500/10 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-20 lg:hover:w-64 group flex flex-col items-center py-8`}>
-                <div className="mb-12"><Leaf className="text-emerald-400" size={24} /></div>
+        <div className="flex h-screen w-full bg-[#030712] overflow-hidden font-outfit">
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#030712] border-r border-slate-800 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-20 lg:hover:w-64 group flex flex-col items-center py-8 shadow-2xl`}>
+                <div className="mb-12"><ShieldCheck className="text-emerald-500" size={28} /></div>
                 <div className="flex-1 w-full space-y-4 px-4">
                     {[
-                        { id: 'overview', icon: Activity, label: 'Monitor' },
-                        { id: 'news', icon: Newspaper, label: 'Eco-Intel' }
+                        { id: 'overview', icon: Activity, label: 'Safety Hub' },
+                        { id: 'news', icon: Newspaper, label: 'Industry Intel' }
                     ].map(item => (
-                        <button key={item.id} onClick={() => setActiveView(item.id)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeView === item.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-500 hover:text-emerald-200'}`}>
+                        <button key={item.id} onClick={() => setActiveView(item.id)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeView === item.id ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-600 hover:text-slate-300'}`}>
                             <item.icon size={24} className="min-w-[24px]" />
                             <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold whitespace-nowrap transition-opacity">{item.label}</span>
                         </button>
                     ))}
                 </div>
-                <button onClick={onToggle} className="mt-auto mb-8 p-3 text-emerald-400 border border-emerald-500/30 rounded-xl w-[calc(100%-32px)] flex items-center gap-4 justify-center lg:justify-start px-4 hover:bg-emerald-500/10">
+                <button onClick={onToggle} className="mt-auto mb-8 p-3 text-emerald-500 border border-emerald-500/30 rounded-xl w-[calc(100%-32px)] flex items-center gap-4 justify-center lg:justify-start px-4 hover:bg-emerald-500/10 active:scale-95 transition-all">
                     <ExternalLink size={24} className="min-w-[24px]" />
-                    <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold whitespace-nowrap transition-opacity">SWITCH MODE</span>
+                    <span className="lg:opacity-0 lg:group-hover:opacity-100 font-bold whitespace-nowrap transition-opacity">PRO MODE</span>
                 </button>
             </aside>
 
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <header className="flex justify-between items-center p-6 border-b border-emerald-500/10 bg-[#022c22]/80 backdrop-blur-md">
+                <header className="flex justify-between items-center p-6 border-b border-slate-800 bg-[#030712]/80 backdrop-blur-xl z-20">
                     <div className="flex items-center gap-4">
                         <button className="lg:hidden text-white" onClick={() => setIsSidebarOpen(!isSidebarOpen)}><Menu /></button>
                         <div>
-                            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">S4 LITE</h1>
-                            <p className="text-[10px] text-emerald-500/60 font-bold">DIRECT LINK // INDIA</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold border ${connectionStatus ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
-                            {connectionStatus ? 'CONNECTED' : 'NO DEVICE'}
+                            <h1 className="text-xl font-black text-white italic tracking-tighter">S4 <span className="text-emerald-500">INDUSTRIAL</span></h1>
+                            <p className="text-[10px] text-slate-500 font-bold font-mono tracking-widest uppercase">Direct Node Link // V2.9</p>
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-6">
+                <main className="flex-1 overflow-y-auto p-8 scrollbar-hide">
                     {activeView === 'overview' && renderOverview()}
                     {activeView === 'news' && <div className="h-full"><NewsComponent /></div>}
                 </main>
-
-                {isDeviceConfigOpen && (
-                    <SetupDeviceModal
-                        isOpen={isDeviceConfigOpen}
-                        onClose={() => setIsDeviceConfigOpen(false)}
-                        onPair={connectSerial}
-                        connectionStatus={connectionStatus}
-                    />
-                )}
-            </div>
-        </div>
-    );
-};
-
-const AnalysisCard = ({ title, data, dataKey, rawKey, color, icon: Icon, unit }) => {
-    return (
-        <div className="glass-panel p-6 border-t-2 border-t-emerald-500/20 h-80 flex flex-col relative overflow-hidden group">
-            <div className={`absolute top-0 right-0 p-8 bg-${color}-500/5 rounded-full -mr-4 -mt-4 blur-3xl`} />
-            <div className="flex justify-between items-center mb-6 relative z-10">
-                <h3 className="text-slate-200 text-sm font-bold flex items-center gap-2 uppercase tracking-widest">
-                    <Icon size={16} className={`text-${color}-400`} /> {title} Analysis
-                </h3>
-            </div>
-
-            <div className="flex-1 min-h-0 relative z-10">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#064e3b" vertical={false} opacity={0.5} />
-                        <XAxis dataKey="timestamp" hide />
-                        <YAxis stroke="#34d399" fontSize={10} tick={false} axisLine={false} domain={['auto', 'auto']} />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#022c22', borderColor: '#065f46', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}
-                            itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
-                            labelStyle={{ display: 'none' }}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey={dataKey}
-                            stroke={color === 'amber' ? '#fbbf24' : color === 'blue' ? '#3b82f6' : '#10b981'}
-                            strokeWidth={3}
-                            dot={false}
-                            name="Filtered"
-                            isAnimationActive={false}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey={rawKey}
-                            stroke="#ffffff"
-                            strokeWidth={1}
-                            strokeOpacity={0.2}
-                            dot={false}
-                            name="Raw (Noisy)"
-                            isAnimationActive={false}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-
-            <div className="flex justify-start gap-6 mt-6 pt-4 border-t border-slate-800 text-[9px] font-black tracking-[0.2em] uppercase relative z-10">
-                <span className="flex items-center gap-2 text-slate-200">
-                    <div className={`w-3 h-0.5 ${color === 'amber' ? 'bg-amber-400' : color === 'blue' ? 'bg-blue-500' : 'bg-emerald-500'}`} /> Filtered
-                </span>
-                <span className="flex items-center gap-2 text-slate-500">
-                    <div className="w-3 h-0.5 bg-slate-600" /> Raw (Noisy)
-                </span>
-            </div>
-        </div>
-    );
-};
-
-const SetupDeviceModal = ({ isOpen, onClose, onPair, connectionStatus }) => {
-    const [step, setStep] = useState(1);
-
-    const arduinoCode = `#include <DHT.h>
-
-#define DHTPIN 4
-#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
-
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-}
-
-void loop() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-  
-  if (!isnan(h) && !isnan(t)) {
-    Serial.print("{\\"temperature\\":");
-    Serial.print(t);
-    Serial.print(",\\"humidity\\":");
-    Serial.print(h);
-    Serial.print(",\\"pm25\\":");
-    Serial.print(random(10, 30)); // Placeholder for MQ sensor
-    Serial.println("}");
-  }
-  delay(2000);
-}`;
-
-    const copyCode = () => {
-        navigator.clipboard.writeText(arduinoCode);
-        alert("Code copied to clipboard!");
-    };
-
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="glass-panel w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="p-6 border-b border-emerald-500/20 flex justify-between items-center bg-emerald-950/20">
-                    <h2 className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                        <Cpu className="text-emerald-400" /> ESP32 SETUP WIZARD
-                    </h2>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X /></button>
-                </div>
-
-                <div className="p-8 overflow-y-auto space-y-8">
-                    {/* Breadcrumbs */}
-                    <div className="flex justify-between relative">
-                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -translate-y-1/2 z-0" />
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 ${step >= i ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-slate-900 border-slate-700 text-slate-500'}`}>
-                                {i}
-                            </div>
-                        ))}
-                    </div>
-
-                    {step === 1 && (
-                        <div className="space-y-4 animate-in slide-in-from-right-4">
-                            <h3 className="text-lg font-bold text-white uppercase">Step 1: Hardware Connection</h3>
-                            <p className="text-slate-400 text-sm">Connect your ESP32 to your computer using a high-quality USB-C or Micro-USB data cable.</p>
-                            <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 flex justify-center">
-                                <div className="text-emerald-500/50 flex flex-col items-center gap-2">
-                                    <Zap size={48} className="animate-pulse" />
-                                    <span className="text-[10px] tracking-widest uppercase">Awaiting Physical Link</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="space-y-4 animate-in slide-in-from-right-4">
-                            <h3 className="text-lg font-bold text-white uppercase">Step 2: Flash Firmware</h3>
-                            <p className="text-slate-400 text-sm">Copy the code below into your Arduino IDE and upload it to your device.</p>
-                            <div className="relative group">
-                                <pre className="bg-slate-950 p-4 rounded-lg font-mono text-[10px] text-emerald-400 overflow-x-auto max-h-48 border border-slate-800">
-                                    {arduinoCode}
-                                </pre>
-                                <button onClick={copyCode} className="absolute top-2 right-2 p-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded text-[10px] font-bold uppercase transition-colors">Copy Code</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 3 && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 text-center">
-                            <h3 className="text-lg font-bold text-white uppercase">Step 3: Pair & Stream</h3>
-                            <p className="text-slate-400 text-sm">Click the button below to authorize the browser to access your ESP32's serial port.</p>
-
-                            <div className="flex flex-col items-center gap-4">
-                                <button
-                                    onClick={() => { onPair(); if (connectionStatus) onClose(); }}
-                                    className={`px-8 py-4 rounded-xl font-black text-lg transition-all flex items-center gap-3 ${connectionStatus ? 'bg-emerald-500 text-black' : 'bg-transparent border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500/10'}`}
-                                >
-                                    {connectionStatus ? <><Shield size={24} /> DEVICE ACTIVE</> : <><Zap size={24} /> INITIALIZE PAIRING</>}
-                                </button>
-                                {connectionStatus && <p className="text-emerald-500 text-xs font-bold animate-pulse tracking-widest">REAL-TIME DATA LINK ESTABLISHED</p>}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-6 border-t border-emerald-500/20 flex justify-between">
-                    <button
-                        disabled={step === 1}
-                        onClick={() => setStep(s => s - 1)}
-                        className="px-6 py-2 text-slate-400 hover:text-white disabled:opacity-0 transition-opacity uppercase font-bold text-xs"
-                    >
-                        Back
-                    </button>
-                    {step < 3 ? (
-                        <button
-                            onClick={() => setStep(s => s + 1)}
-                            className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold uppercase text-xs transition-colors"
-                        >
-                            Next Step
-                        </button>
-                    ) : (
-                        <button
-                            onClick={onClose}
-                            className="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded font-bold uppercase text-xs transition-colors"
-                        >
-                            Done
-                        </button>
-                    )}
-                </div>
             </div>
         </div>
     );

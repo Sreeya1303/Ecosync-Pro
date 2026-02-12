@@ -19,7 +19,7 @@ from .connectors.waqi import WAQIConnector
 from .connectors.openaq import OpenAQConnector
 from .connectors.esp32_stub import ESP32StubConnector
 
-from .routers import assistant, auth_v2 as auth, map as map_router, pro_api, push_notifications
+from .routers import assistant, auth_v2 as auth, map as map_router, pro_api, push_notifications, industrial
 from .routers.push_notifications import send_push_notification_to_user
 from .services import kalman_filter, aqi_calculator, external_apis, fusion_engine, weather_service
 
@@ -94,6 +94,7 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(map_router.router, tags=["Map"])
 app.include_router(pro_api.router, tags=["Pro Mode"])
 app.include_router(push_notifications.router, tags=["Push Notifications"])
+app.include_router(industrial.router, tags=["Industrial Safety"])
 
 # --- Helper Functions ---
 def get_connector(device: models.Device):
@@ -486,6 +487,7 @@ class IoTSensorData(BaseModel):
     pressure: float = 1013.0
     mq_raw: float = 0.0
     wind_speed: float = 0.0
+    motion: bool = False
     user_email: Optional[str] = None
     lat: Optional[float] = None
     lon: Optional[float] = None
@@ -541,7 +543,8 @@ async def receive_iot_data(data: IoTSensorData, background_tasks: BackgroundTask
             pressure=data.pressure,
             wind_speed=0.0,
             pm2_5=filtered_pm25,
-            pm10=mq_cleaned["smoothed"] # Storing smoothed MQ here
+            pm10=mq_cleaned["smoothed"], # Storing smoothed MQ here
+            motion=data.motion
         )
         db.add(measurement)
         db.commit()

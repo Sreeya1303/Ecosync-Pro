@@ -107,6 +107,7 @@ class SensorDataBase(BaseModel):
     pm10: Optional[float] = 0.0
     no2: Optional[float] = 0.0
     solar_radiation: Optional[float] = 0.0
+    motion: Optional[bool] = False
 
 class SensorDataCreate(SensorDataBase):
     pass
