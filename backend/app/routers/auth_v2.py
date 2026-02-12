@@ -1,7 +1,6 @@
 from datetime import timedelta, datetime as dt
 import random
 import string
-print(f"LOADING AUTH_V2 FROM {__file__}")
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -25,12 +24,11 @@ from google.auth.transport import requests
 
 
 def get_db():
-    print(f">>> TRACE: get_db starting at {dt.now().isoformat()}")
+    """Database session dependency"""
     db = database.SessionLocal()
     try:
         yield db
     finally:
-        print(f">>> TRACE: get_db closing at {dt.now().isoformat()}")
         db.close()
 
 
@@ -42,13 +40,16 @@ def test_ping():
 # --- DIRECT REGISTER ENDPOINT ---
 @router.post("/auth/register", response_model=schemas.Token)
 def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    # 1. Check existing
-    print(f"DEBUG REGISTER PAYLOAD: {user_data.dict()}")
+    """
+    Register a new user with direct email/password authentication.
+    Auto-verifies the user and returns an access token.
+    """
+    # Check if user already exists
     existing = db.query(models.User).filter(models.User.email == user_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists (Email taken)")
     
-    # 2. Create User
+    # Create new user with hashed password
     hashed_password = security.get_password_hash(user_data.password)
     new_user = models.User(
         email=user_data.email,
@@ -57,13 +58,13 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
         last_name=user_data.last_name,
         plan=user_data.plan or "lite",
         location_name=user_data.location_name,
-        is_verified=True # Auto-verify for direct registration
+        is_verified=True  # Auto-verify for direct registration
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
-    # 3. Generate Token
+    # Generate JWT access token
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         data={"sub": new_user.email}, expires_delta=access_token_expires
@@ -80,44 +81,34 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    t0 = dt.now()
-    print(f">>> TRACE: Login attempt for {form_data.username} at {t0.isoformat()}")
-    
-    # 1. Fetch User
+    """
+    OAuth2 compatible token login endpoint.
+    Authenticates user and returns JWT access token.
+    """
+    # Fetch user by email
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    t1 = dt.now()
-    print(f">>> TRACE: User lookup took {(t1-t0).total_seconds()}s")
     
     if not user:
-        print(f"DEBUG: User {form_data.username} not found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 2. Verify Password
-    print(f">>> TRACE: Verifying password for {user.email}")
+    # Verify password
     if not security.verify_password(form_data.password, user.hashed_password):
-        t2 = dt.now()
-        print(f">>> TRACE: Password verification FAILED after {(t2-t1).total_seconds()}s")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    t2 = dt.now()
-    print(f">>> TRACE: Password verification success in {(t2-t1).total_seconds()}s")
 
-    # 3. Generate Token
+    # Generate JWT access token
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    t3 = dt.now()
-    print(f">>> TRACE: Token generation took {(t3-t2).total_seconds()}s")
     
-    print(f">>> TRACE: Login success for {user.email}. Total time: {(t3-t0).total_seconds()}s")
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -129,6 +120,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Dependency to get the current authenticated user from JWT token.
+    Used to protect endpoints that require authentication.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -152,34 +147,38 @@ class SignupInitRequest(schemas.BaseModel):
 
 @router.post("/auth/signup-init")
 def signup_init(request: SignupInitRequest, db: Session = Depends(get_db)):
-    # 1. Check existing
+    """
+    Initialize signup process by sending OTP verification code to email.
+    Creates unverified user record if new, or updates existing unverified user.
+    """
+    # Check if user already exists
     user = db.query(models.User).filter(models.User.email == request.email).first()
     if user and user.is_verified:
         raise HTTPException(status_code=400, detail="Identity Hash already registered. Please Login.")
     
-    # 2. Logic for new or unverified
+    # Generate 6-digit OTP code
     otp_code = ''.join(random.choices(string.digits, k=6))
     
     if user and not user.is_verified:
-        # Update existing unverified
+        # Update OTP for existing unverified user
         user.otp_secret = otp_code
         db.commit()
     else:
-        # Create new placeholder
+        # Create new placeholder user
         hashed_password = security.get_password_hash("PENDING-SETUP")
         new_user = models.User(
             email=request.email,
             hashed_password=hashed_password,
             is_verified=False,
             otp_secret=otp_code,
-            plan="lite" # Default
+            plan="lite"  # Default plan
         )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
     
-    # 3. Send Email
-    subject = "S4 SECURITY CHECK: Identity Verification"
+    # Send OTP via email
+    subject = "EcoSync S4: Identity Verification Code"
     body = f"""
     [SECURE TRANSMISSION]
     
@@ -194,9 +193,9 @@ def signup_init(request: SignupInitRequest, db: Session = Depends(get_db)):
     try:
         send_email_notification(request.email, subject, body)
     except Exception as e:
-        print(f"Email Failed: {e}")
-        # For debugging/demo if email fails
-        print(f"DEBUG OTP: {otp_code}")
+        # Log email failure (OTP still valid for testing)
+        print(f"⚠️ Email notification failed: {e}")
+        print(f"📧 OTP Code for {request.email}: {otp_code}")
         
     return {"status": "success", "message": "Verification Signal Sent"}
 
@@ -210,6 +209,10 @@ class SignupCompleteRequest(schemas.BaseModel):
 
 @router.post("/auth/signup-complete", response_model=schemas.Token)
 def signup_complete(request: SignupCompleteRequest, db: Session = Depends(get_db)):
+    """
+    Complete signup process by verifying OTP and setting user credentials.
+    Returns JWT token upon successful verification.
+    """
     user = db.query(models.User).filter(models.User.email == request.email).first()
     
     if not user:
@@ -221,12 +224,12 @@ def signup_complete(request: SignupCompleteRequest, db: Session = Depends(get_db
     if user.otp_secret != request.otp:
         raise HTTPException(status_code=400, detail="Invalid Verification Code")
 
-    # Finalize Account
+    # Finalize user account with credentials
     user.hashed_password = security.get_password_hash(request.password)
     user.first_name = request.first_name
     user.last_name = request.last_name
     user.is_verified = True
-    user.otp_secret = None # Cleanup
+    user.otp_secret = None  # Clear OTP after successful verification
     
     db.commit()
     
@@ -251,6 +254,10 @@ class VerifyRequest(schemas.BaseModel):
 
 @router.post("/verify-email")
 def verify_email(req: VerifyRequest, db: Session = Depends(get_db)):
+    """
+    Verify user email with OTP code.
+    Returns short-lived token for credential setup.
+    """
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -259,11 +266,11 @@ def verify_email(req: VerifyRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid OTP Code")
         
     user.is_verified = True
-    user.otp_secret = None # Clear OTP after use
+    user.otp_secret = None  # Clear OTP after use
     db.commit()
     
-    # Issue Temporary Access Token for Setup
-    access_token_expires = timedelta(minutes=15) # Short lived for setup
+    # Issue temporary access token for credential setup (15 min expiry)
+    access_token_expires = timedelta(minutes=15)
     access_token = security.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
@@ -282,9 +289,13 @@ class CredentialsSetup(schemas.BaseModel):
 
 @router.post("/me/setup-credentials")
 def setup_credentials(creds: CredentialsSetup, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Update Password
+    """
+    Set up user credentials after email verification.
+    Updates password and profile information.
+    """
+    # Update password with secure hash
     current_user.hashed_password = security.get_password_hash(creds.password)
-    # Update Profile
+    # Update profile information
     current_user.first_name = creds.first_name
     current_user.last_name = creds.last_name
     
@@ -295,6 +306,10 @@ def setup_credentials(creds: CredentialsSetup, current_user: models.User = Depen
 
 @router.put("/me/profile")
 def update_profile(profile: schemas.UserProfileUpdate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Update user profile information.
+    Requires authentication.
+    """
     current_user.first_name = profile.first_name
     current_user.last_name = profile.last_name
     current_user.mobile = profile.mobile
@@ -323,11 +338,9 @@ def update_user_location(
     db: Session = Depends(get_db)
 ):
     """
-    Update user's current location coordinates
-    This enables dynamic location tracking for geofencing alerts
+    Update user's current location coordinates.
+    Enables dynamic location tracking for geofencing alerts.
     """
-    print(f"📍 Updating location for {current_user.email}")
-    print(f"   New location: {location_data.location_name} ({location_data.location_lat}, {location_data.location_lon})")
     
     # Update user location
     current_user.location_lat = location_data.location_lat
@@ -336,8 +349,6 @@ def update_user_location(
     
     db.commit()
     db.refresh(current_user)
-    
-    print(f"✅ Location updated successfully for {current_user.email}")
     
     return {
         "status": "success",
@@ -355,26 +366,30 @@ class GoogleLoginRequest(schemas.BaseModel):
 
 @router.post("/google-login", response_model=schemas.Token)
 def google_login(request: GoogleLoginRequest, db: Session = Depends(get_db)):
+    """
+    Authenticate user with Google OAuth2 token.
+    Auto-registers new users if they don't exist.
+    """
     try:
-        # Verify Token
+        # Verify Google OAuth2 token
         id_info = id_token.verify_oauth2_token(request.token, requests.Request())
 
         email = id_info.get("email")
         if not email:
             raise HTTPException(status_code=400, detail="Invalid Google Token: No Email")
             
-        # Check User
+        # Check if user exists
         user = db.query(models.User).filter(models.User.email == email).first()
         
         if not user:
-            # Auto-Register
+            # Auto-register new Google user
             hashed_password = security.get_password_hash("google_oauth_auto_generated")
             user = models.User(email=email, hashed_password=hashed_password)
             db.add(user)
             db.commit()
             db.refresh(user)
             
-        # Issue JWT
+        # Issue JWT access token
         access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = security.create_access_token(
             data={"sub": user.email}, expires_delta=access_token_expires
