@@ -60,9 +60,9 @@ const LandingPage = () => {
 
                     {/* Links Section */}
                     <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest text-emerald-100/60 uppercase">
-                        <a href="/" className="hover:text-emerald-400 transition-colors">Home</a>
-                        <a href="mailto:contact@ecosync.io" className="hover:text-emerald-400 transition-colors">Contact</a>
+                        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-emerald-400 transition-colors">Home</button>
                         <a href="#about" className="hover:text-emerald-400 transition-colors">About</a>
+                        <a href="#contact" className="hover:text-emerald-400 transition-colors">Contact</a>
                         <a href="https://github.com/projectc943-prog/Ecosync" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Github</a>
                     </div>
 
@@ -80,8 +80,7 @@ const LandingPage = () => {
 
             {/* --- HERO SECTION --- */}
             <header className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-20 px-6">
-
-                {/* Parallax Elements */}
+                {/* ... existing hero code ... */}
                 <div
                     ref={orb1Ref}
                     className="absolute top-1/4 left-10 md:left-1/4 w-32 h-32 border border-emerald-500/20 rounded-full pointer-events-none transition-transform duration-100 ease-out"
@@ -92,8 +91,6 @@ const LandingPage = () => {
                 />
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto">
-
-                    {/* Main Title Group */}
                     <div className="mb-12 animate-in fade-in zoom-in duration-1000">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/50 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-6">
                             <Sprout size={12} />
@@ -117,16 +114,12 @@ const LandingPage = () => {
                         </p>
                     </div>
 
-                    {/* Action Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-300">
-
-                        {/* Access Terminal */}
                         <div
                             onClick={() => navigate('/login')}
                             className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-[#022c22]/50 border border-white/5 p-1 hover:border-emerald-500/50 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
                             <div className="relative h-full bg-[#022c22]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
                                 <div className="w-12 h-12 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-500">
                                     <Activity className="text-emerald-400 w-6 h-6" />
@@ -141,13 +134,11 @@ const LandingPage = () => {
                             </div>
                         </div>
 
-                        {/* New Node Request */}
                         <div
                             onClick={() => navigate('/login?mode=signup')}
                             className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-[#022c22]/50 border border-white/5 p-1 hover:border-lime-500/50 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(132,204,22,0.5)]"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
                             <div className="relative h-full bg-[#022c22]/80 backdrop-blur-xl rounded-[1.8rem] p-8 flex flex-col items-start text-left overflow-hidden">
                                 <div className="w-12 h-12 bg-lime-950/30 border border-lime-500/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-lime-500/20 transition-all duration-500">
                                     <Network className="text-lime-400 w-6 h-6" />
@@ -161,11 +152,48 @@ const LandingPage = () => {
                                 </div>
                             </div>
                         </div>
-
                     </div>
-
                 </div>
             </header>
+
+            {/* --- ABOUT SECTION --- */}
+            <section id="about" className="py-24 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                        <div className="space-y-8 animate-in slide-in-from-left duration-1000">
+                            <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-emerald-400 tracking-tighter">
+                                ARCHITECTING THE FUTURE OF <br /> ENVIRONMENTAL INTELLIGENCE
+                            </h2>
+                            <p className="text-lg text-slate-300 leading-relaxed font-light">
+                                EcoSync is a comprehensive IoT ecosystem designed for hyper-local environmental monitoring. By merging high-precision sensor hardware with advanced Gaussian filtering and real-time data streaming, we provide unmatched insights into ecosystem health.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="p-6 rounded-2xl bg-emerald-950/30 border border-emerald-500/10">
+                                    <Terminal className="text-emerald-400 mb-3" size={24} />
+                                    <h4 className="font-bold text-white mb-2">Real-time Telemetry</h4>
+                                    <p className="text-xs text-slate-400">Sub-100ms latency from physical sensor to cloud dashboard.</p>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-lime-950/30 border border-lime-500/10">
+                                    <Lock className="text-lime-400 mb-3" size={24} />
+                                    <h4 className="font-bold text-white mb-2">End-to-End Encryption</h4>
+                                    <p className="text-xs text-slate-400">Military-grade AES-256 wrapping for all industrial telemetry packets.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="relative animate-in zoom-in duration-1000">
+                            <div className="aspect-square rounded-[3rem] bg-gradient-to-br from-emerald-500/20 to-lime-500/20 border border-white/10 flex items-center justify-center overflow-hidden">
+                                <div className="p-12 text-center space-y-4">
+                                    <div className="text-6xl font-black text-emerald-400">99.9%</div>
+                                    <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">Uptime Reliability</div>
+                                    <p className="text-sm text-slate-400">Active monitoring across industrial zones, fire-cracker units, and agricultural heartlands.</p>
+                                </div>
+                            </div>
+                            <div className="absolute -top-6 -right-6 w-24 h-24 bg-teal-500/20 rounded-full blur-2xl animate-pulse"></div>
+                            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* --- FEATURES STRIP --- */}
             <div className="border-y border-white/5 bg-[#022c22]/50 backdrop-blur-sm py-16 text-emerald-100">
@@ -186,9 +214,43 @@ const LandingPage = () => {
                 </div>
             </div>
 
+            {/* --- CONTACT SECTION --- */}
+            <section id="contact" className="py-24 bg-[#011f18]">
+                <div className="max-w-4xl mx-auto px-6 text-center">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tighter uppercase">Connect with EcoSync Support</h2>
+                    <p className="text-slate-400 mb-12 font-light text-lg">Have technical questions or need custom industrial solutions? Our engineering team is ready to scale with you.</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                        <div className="p-8 rounded-[2rem] bg-emerald-950/20 border border-emerald-500/10 flex items-center gap-6 group hover:bg-emerald-500/5 transition-colors">
+                            <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                                <Zap size={28} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-emerald-500/60 font-black uppercase tracking-[0.2em] mb-1">Direct Line</p>
+                                <p className="text-xl font-bold text-white">+91 98765 43210</p>
+                            </div>
+                        </div>
+                        <div className="p-8 rounded-[2rem] bg-teal-950/20 border border-teal-500/10 flex items-center gap-6 group hover:bg-teal-500/5 transition-colors">
+                            <div className="w-14 h-14 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
+                                <Globe size={28} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-teal-500/60 font-black uppercase tracking-[0.2em] mb-1">Global Support</p>
+                                <p className="text-xl font-bold text-white">support@ecosync.io</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* --- FOOTER --- */}
-            <footer className="py-8 text-center text-emerald-900/50 text-xs tracking-widest uppercase border-t border-white/5 font-mono">
-                <p>CLOUD-BASED IOT ENVIRONMENTAL MONITORING // SECURE INFRASTRUCTURE // 2026</p>
+            <footer className="py-12 text-center text-emerald-900/50 text-[10px] tracking-widest uppercase border-t border-white/5 font-mono">
+                <div className="flex justify-center gap-8 mb-4 opacity-60">
+                    <a href="#" className="hover:text-emerald-400">Terms of Service</a>
+                    <a href="#" className="hover:text-emerald-400">Privacy Protocol</a>
+                    <a href="#" className="hover:text-emerald-400">SLA Agreement</a>
+                </div>
+                <p>CLOUD-BASED IOT ENVIRONMENTAL MONITORING // PROJECT ECOSYNC // 2026</p>
             </footer>
 
         </div>

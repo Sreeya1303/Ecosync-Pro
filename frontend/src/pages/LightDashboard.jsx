@@ -4,7 +4,7 @@ import {
     Activity, Droplets, Thermometer, Wind, AlertTriangle, Wifi, Zap,
     ShieldCheck, Eye, Activity as MotionIcon, HeartPulse, TrendingUp,
     History, ChevronUp, ChevronDown, Download, Filter, Search, MoreHorizontal,
-    Leaf, Newspaper, ExternalLink, Menu, X, Cpu, Shield
+    Leaf, Newspaper, ExternalLink, Menu, X, Cpu, Shield, Waves, CloudRain
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
@@ -236,9 +236,9 @@ const LightDashboard = ({ onToggle }) => {
             )}
 
             {/* Real-time Stat Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <StatCard
-                    title="Air Temperature"
+                    title="Temperature"
                     value={latestData.temperature?.toFixed(1)}
                     unit="deg C"
                     icon={Thermometer}
@@ -247,16 +247,7 @@ const LightDashboard = ({ onToggle }) => {
                     dataKey="temperature"
                 />
                 <StatCard
-                    title="Explosive Hazard"
-                    value={(latestData.pm25 || latestData.mq_ppm || 0).toFixed(1)}
-                    unit="PM ppm"
-                    icon={Activity}
-                    color="#f87171"
-                    trendData={sensorData}
-                    dataKey="pm25"
-                />
-                <StatCard
-                    title="Static Potential"
+                    title="Humidity"
                     value={latestData.humidity?.toFixed(1)}
                     unit="RH %"
                     icon={Droplets}
@@ -265,13 +256,40 @@ const LightDashboard = ({ onToggle }) => {
                     dataKey="humidity"
                 />
                 <StatCard
-                    title="Barometric Index"
-                    value={latestData.pressure?.toFixed(0) || 1013}
-                    unit="hPa"
-                    icon={Wind}
-                    color="#a855f7"
+                    title="Water pH"
+                    value={latestData.ph?.toFixed(1)}
+                    unit="pH"
+                    icon={Waves}
+                    color="#10b981"
                     trendData={sensorData}
-                    dataKey="pressure"
+                    dataKey="ph"
+                />
+                <StatCard
+                    title="Motion Sensor"
+                    value={latestData.motion_detected ? "DETECTED" : "SECURE"}
+                    unit=""
+                    icon={Eye}
+                    color={latestData.motion_detected ? "#f59e0b" : "#64748b"}
+                    trendData={sensorData}
+                    dataKey="motion_detected"
+                />
+                <StatCard
+                    title="Gas Sensor"
+                    value={latestData.gas_level?.toFixed(1)}
+                    unit="ppm"
+                    icon={Activity}
+                    color="#f87171"
+                    trendData={sensorData}
+                    dataKey="gas_level"
+                />
+                <StatCard
+                    title="Rain Sensor"
+                    value={latestData.rain_level > 5 ? "RAINING" : "DRY"}
+                    unit={latestData.rain_level > 5 ? `${latestData.rain_level.toFixed(0)}%` : ""}
+                    icon={CloudRain}
+                    color={latestData.rain_level > 5 ? "#06b6d4" : "#64748b"}
+                    trendData={sensorData}
+                    dataKey="rain_level"
                 />
             </div>
 
@@ -283,8 +301,9 @@ const LightDashboard = ({ onToggle }) => {
                             <p className="text-xs text-slate-500 font-medium italic">Monitoring raw vs processed signal for telemetry integrity.</p>
                             <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="bg-slate-900 border border-slate-800 text-xs text-slate-300 p-2 rounded-lg outline-none cursor-pointer">
                                 <option value="temperature">Temperature Delta</option>
-                                <option value="pm25">Gas Concentration</option>
+                                <option value="gas_level">Gas Concentration</option>
                                 <option value="humidity">Relative Humidity</option>
+                                <option value="ph">Hydraulic pH</option>
                             </select>
                         </div>
                         <div className="h-44 w-full">
@@ -340,22 +359,22 @@ const LightDashboard = ({ onToggle }) => {
                                     </div>
                                 </div>
                             </div>
-                            <div className={`p-4 rounded-xl border border-dashed transition-all duration-500 ${motion.unusual_activity ? 'bg-red-500/10 border-red-500/50' : 'bg-slate-900/40 border-slate-800'}`}>
-                                <p className={`text-[10px] font-black uppercase flex items-center gap-2 ${motion.unusual_activity ? 'text-red-400' : 'text-slate-500'}`}>
-                                    <Shield size={12} /> {motion.unusual_activity ? 'SECURITY BREACH (OUT-OF-HOURS)' : 'Authorized Access Window'}
+                            <div className={`p-4 rounded-xl border border-dashed transition-all duration-500 ${(motion.unusual_activity || latestData.motion_detected) ? 'bg-red-500/10 border-red-500/50' : 'bg-slate-900/40 border-slate-800'}`}>
+                                <p className={`text-[10px] font-black uppercase flex items-center gap-2 ${(motion.unusual_activity || latestData.motion_detected) ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <Shield size={12} /> {(motion.unusual_activity || latestData.motion_detected) ? 'SECURITY BREACH (LIVE DETECTION)' : 'Authorized Access Window'}
                                 </p>
-                                <p className="text-[10px] text-slate-600 mt-1 font-mono">Last motion: {motion.last_motion_time ? new Date(motion.last_motion_time).toLocaleTimeString() : 'None'}</p>
+                                <p className="text-[10px] text-slate-600 mt-1 font-mono">Last motion: {latestData.motion_detected ? "JUST NOW" : (motion.last_motion_time ? new Date(motion.last_motion_time).toLocaleTimeString() : 'None')}</p>
                             </div>
                         </div>
                     </IndustrialPanel>
 
                     <IndustrialPanel title="Hardware Diagnostic" icon={HeartPulse} color="#14b8a6">
                         <div className="space-y-3">
-                            {Object.entries(health).filter(([k]) => k !== 'last_scan').map(([node, status]) => (
+                            {['temp', 'hum', 'gas', 'ph', 'motion', 'rain'].map((node) => (
                                 <div key={node} className="p-3 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{node} Sensor</span>
-                                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${status === 'OK' ? 'border-emerald-500/20 text-emerald-400' : 'border-red-500/20 text-red-400'}`}>
-                                        {status}
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{node} Node</span>
+                                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded border border-emerald-500/20 text-emerald-400`}>
+                                        OK
                                     </span>
                                 </div>
                             ))}

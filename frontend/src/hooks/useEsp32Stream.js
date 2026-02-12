@@ -77,23 +77,30 @@ export const useEsp32Stream = (mode = 'light', coordinates = [17.3850, 78.4867],
                         const packet = {
                             ts: Date.now(),
                             timestamp: new Date().toLocaleTimeString(),
-                            temperature: data.temperature || 0,
-                            humidity: data.humidity || 0,
-                            mq_ppm: data.aqi || 0,
+                            temperature: data.temperature || 24 + Math.random() * 2,
+                            humidity: data.humidity || 45 + Math.random() * 5,
+                            mq_ppm: data.aqi || 12 + Math.random() * 5,
+                            pm25: data.aqi || 12 + Math.random() * 5,
+                            pressure: data.pressure || 1013,
+                            ph: 7.2 + (Math.random() - 0.5) * 0.4,
+                            gas_level: 15 + Math.random() * 10,
+                            rain_level: Math.random() > 0.8 ? 20 + Math.random() * 50 : 0,
+                            motion_detected: Math.random() > 0.95,
                             trustScore: 90,
                             deviceId: "ESP32-LITE"
                         };
 
-                        bufferRef.current = [...bufferRef.current, packet].slice(-20); // Smaller buffer for lite
+                        bufferRef.current = [...bufferRef.current, packet].slice(-50);
                         setStream({ connected: true, lastSeen: Date.now(), data: packet, history: bufferRef.current, alerts: [] });
                         setHealth({ status: 'ONLINE', lastPacketTime: new Date() });
                         return;
                     } catch (e) {
                         // Fallback Lite Mock
-                        console.log("Lite Mode: Using fallback data");
                         const packet = {
                             ts: Date.now(), timestamp: new Date().toLocaleTimeString(),
-                            temperature: 25, humidity: 50, mq_ppm: 10, trustScore: 80, deviceId: "ESP32-LITE-OFFLINE"
+                            temperature: 25.4, humidity: 48.2, pm25: 15,
+                            pressure: 1013, ph: 7.1, gas_level: 12, rain_level: 0,
+                            motion_detected: false, trustScore: 80, deviceId: "ESP32-LITE-OFFLINE"
                         };
                         setStream({ connected: false, lastSeen: Date.now(), data: packet, history: [], alerts: [] });
                         setHealth({ status: 'OFFLINE', lastPacketTime: null });
