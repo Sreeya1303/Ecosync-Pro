@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Leaf, Globe, Shield, Activity, Radio, Zap, Wind, Terminal, Lock, Sprout, Network } from 'lucide-react';
+import { ArrowRight, Leaf, Globe, Shield, Activity, Radio, Zap, Wind, Terminal, Lock, Sprout, Network, Newspaper, ExternalLink, Menu, X, Cpu, Waves, CloudRain, User } from 'lucide-react';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -220,8 +220,17 @@ const LandingPage = () => {
                     <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tighter uppercase">Connect with EcoSync Support</h2>
                     <p className="text-slate-400 mb-12 font-light text-lg">Have technical questions or need custom industrial solutions? Our engineering team is ready to scale with you.</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                        <div className="p-8 rounded-[2rem] bg-emerald-950/20 border border-emerald-500/10 flex items-center gap-6 group hover:bg-emerald-500/5 transition-colors">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                        <div className="p-8 rounded-[2rem] bg-indigo-950/20 border border-indigo-500/10 flex items-center gap-6 group hover:bg-indigo-500/5 transition-colors text-center flex-col md:flex-row md:text-left">
+                            <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                                <User size={28} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-indigo-500/60 font-black uppercase tracking-[0.2em] mb-1">Technical Lead</p>
+                                <p className="text-xl font-bold text-white">Sreekar S.</p>
+                            </div>
+                        </div>
+                        <div className="p-8 rounded-[2rem] bg-emerald-950/20 border border-emerald-500/10 flex items-center gap-6 group hover:bg-emerald-500/5 transition-colors text-center flex-col md:flex-row md:text-left">
                             <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                                 <Zap size={28} />
                             </div>
@@ -230,7 +239,7 @@ const LandingPage = () => {
                                 <p className="text-xl font-bold text-white">+91 98765 43210</p>
                             </div>
                         </div>
-                        <div className="p-8 rounded-[2rem] bg-teal-950/20 border border-teal-500/10 flex items-center gap-6 group hover:bg-teal-500/5 transition-colors">
+                        <div className="p-8 rounded-[2rem] bg-teal-950/20 border border-teal-500/10 flex items-center gap-6 group hover:bg-teal-500/5 transition-colors text-center flex-col md:flex-row md:text-left">
                             <div className="w-14 h-14 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
                                 <Globe size={28} />
                             </div>

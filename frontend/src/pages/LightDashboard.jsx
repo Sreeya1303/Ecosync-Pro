@@ -4,7 +4,8 @@ import {
     Activity, Droplets, Thermometer, Wind, AlertTriangle, Wifi, Zap,
     ShieldCheck, Eye, Activity as MotionIcon, HeartPulse, TrendingUp,
     History, ChevronUp, ChevronDown, Download, Filter, Search, MoreHorizontal,
-    Leaf, Newspaper, ExternalLink, Menu, X, Cpu, Shield, Waves, CloudRain
+    Leaf, Newspaper, ExternalLink, Menu, X, Cpu, Shield, Waves, CloudRain,
+    Info, Phone, Mail, Globe, User
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEsp32Stream } from '../hooks/useEsp32Stream';
@@ -436,6 +437,84 @@ const LightDashboard = ({ onToggle }) => {
         </div>
     );
 
+    const renderAbout = () => (
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
+            <div className="glass-panel p-8 border-emerald-500/20 bg-emerald-950/5">
+                <h2 className="text-3xl font-black text-white mb-6 italic italic tracking-tighter">PROJECT ECOSYNC</h2>
+                <p className="text-slate-300 leading-relaxed mb-6 font-light">
+                    EcoSync is an advanced Industrial IoT ecosystem engineered specifically for high-risk manufacturing environments. Our mission is to bridge the gap between physical telemetry and explainable intelligence.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                        <h4 className="text-emerald-400 font-bold mb-2 uppercase text-xs">Mission Focus</h4>
+                        <p className="text-xs text-slate-400">Real-time prevention of thermal runaway and gas buildup in explosive manufacturing zones.</p>
+                    </div>
+                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                        <h4 className="text-emerald-400 font-bold mb-2 uppercase text-xs">XAI Framework</h4>
+                        <p className="text-xs text-slate-400">Explainable AI models that translate complex sensor fusion into actionable human reasoning.</p>
+                    </div>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: 'Latency', value: '< 100ms', sub: 'Sensor-to-Cloud' },
+                    { label: 'Reliability', value: '99.9%', sub: 'Industrial SLA' },
+                    { label: 'Security', value: 'AES-256', sub: 'End-to-End Encryption' }
+                ].map((stat, i) => (
+                    <div key={i} className="glass-panel p-6 text-center border-slate-800">
+                        <p className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">{stat.label}</p>
+                        <p className="text-2xl font-black text-white">{stat.value}</p>
+                        <p className="text-[9px] text-slate-600 mt-1 uppercase">{stat.sub}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderContact = () => (
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
+            <div className="glass-panel p-8 border-slate-800 bg-slate-950/50">
+                <h2 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic">Contact Engineering</h2>
+                <p className="text-slate-400 mb-10 font-light">Direct support for industrial node maintenance and system integration.</p>
+
+                <div className="space-y-4">
+                    <div className="flex items-center gap-6 p-6 bg-slate-900/30 rounded-2xl border border-slate-800 group hover:border-emerald-500/30 transition-all">
+                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                            <User size={24} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Technical Lead</p>
+                            <p className="text-lg font-bold text-white tracking-tight">Sreekar S.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6 p-6 bg-slate-900/30 rounded-2xl border border-slate-800 group hover:border-emerald-500/30 transition-all">
+                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                            <Phone size={24} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Direct Line</p>
+                            <p className="text-lg font-bold text-white tracking-tight">+91 98765 43210</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6 p-6 bg-slate-900/30 rounded-2xl border border-slate-800 group hover:border-emerald-500/30 transition-all">
+                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                            <Mail size={24} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Global Support</p>
+                            <p className="text-lg font-bold text-white tracking-tight">support@ecosync.io</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="flex justify-center gap-8 text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                <span className="cursor-pointer hover:text-emerald-500">Terms</span>
+                <span className="cursor-pointer hover:text-emerald-500">Privacy</span>
+                <span className="cursor-pointer hover:text-emerald-500">SLA</span>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex h-screen w-full bg-[#030712] overflow-hidden font-outfit">
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#030712] border-r border-slate-800 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:w-20 lg:hover:w-64 group flex flex-col items-center py-8 shadow-2xl`}>
@@ -443,7 +522,9 @@ const LightDashboard = ({ onToggle }) => {
                 <div className="flex-1 w-full space-y-4 px-4">
                     {[
                         { id: 'overview', icon: Activity, label: 'Safety Hub' },
-                        { id: 'news', icon: Newspaper, label: 'Industry Intel' }
+                        { id: 'news', icon: Newspaper, label: 'Industry Intel' },
+                        { id: 'about', icon: Info, label: 'About Project' },
+                        { id: 'contact', icon: Phone, label: 'Contact Support' }
                     ].map(item => (
                         <button key={item.id} onClick={() => setActiveView(item.id)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeView === item.id ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-600 hover:text-slate-300'}`}>
                             <item.icon size={24} className="min-w-[24px]" />
@@ -471,6 +552,8 @@ const LightDashboard = ({ onToggle }) => {
                 <main className="flex-1 overflow-y-auto p-8 scrollbar-hide">
                     {activeView === 'overview' && renderOverview()}
                     {activeView === 'news' && <div className="h-full"><NewsComponent /></div>}
+                    {activeView === 'about' && renderAbout()}
+                    {activeView === 'contact' && renderContact()}
                 </main>
             </div>
         </div>
